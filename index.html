@@ -326,6 +326,8 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{ou
 <style>@keyframes float{0%,100%{transform:translateY(0) rotate(-1.5deg)}50%{transform:translateY(-10px) rotate(1.5deg)}}</style>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>window.supabase||document.write('<script src="https://unpkg.com/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"><\/script>')</script>
+<script>window.supabase||document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/supabase-js/2.45.4/umd/supabase.min.js"><\/script>')</script>
 <script>
 /* =====================================================================
    1. CONNECT SUPABASE  (Project Settings > API in your Supabase dashboard)
@@ -379,7 +381,9 @@ const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const root=document.documentElement;
 const demo=!(SUPABASE_URL&&SUPABASE_ANON_KEY);
-const sb=demo?null:supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+let sb=null;
+try{if(!demo)sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY)}catch(e){console.error("Supabase failed to load",e)}
+const OFFLINE_MSG="Could not reach the sign-in service. Check your internet connection and refresh the page.";
 
 const S={view:"library",level:"all",sem:"all",type:"all",course:null,q:"",sort:"new",
   courses:[],resources:[],notebooks:[],pending:[],nbLevel:"all",bCourse:null,user:null,profile:null,loading:true};
@@ -434,7 +438,8 @@ const DEMO_RES=[
 ];
 async function load(){
   S.loading=true;renderAll();
-  if(demo){
+  if(demo||!sb){
+    if(!demo)toast(OFFLINE_MSG);
     S.courses=COURSES.map(([code,title,level,semester,units])=>({id:code,code,title,level,semester,units}));
     S.resources=DEMO_RES.map((r,i)=>({id:"demo"+i,course_id:r[0],title:r[1],type:r[2],session:r[3],downloads:r[4],file_size:r[5],description:"Sample entry shown in demo mode.",demo:true,created_at:new Date(Date.now()-i*86400000*9).toISOString(),status:"approved"}));
     S.notebooks=[["ACC 101","Principles of Accounting I exam revision","Key terms, worked examples and practice questions."],["ACC 305","Nigerian tax laws explained","CITA and PITA in plain language."],["ACC 410","Final year project guide","From topic selection to your defence."]]
@@ -576,6 +581,7 @@ function renderAuth(){
 }
 $("#authBtn").onclick=async()=>{
   if(demo){toast("Demo mode: add your Supabase keys to enable accounts.");return}
+  if(!sb){toast(OFFLINE_MSG);return}
   if(S.user){await sb.auth.signOut();toast("Signed out");return}
   openAuth("in");
 };
@@ -598,8 +604,11 @@ function openAuth(mode){
     const email=$("#aEmail").value.trim(),password=$("#aPass").value,err=$("#aErr");err.classList.add("hidden");
     if(!email||password.length<6){err.textContent="Enter your email and a password of at least 6 characters.";err.classList.remove("hidden");return}
     $("#aGo").disabled=true;
-    const res=up?await sb.auth.signUp({email,password,options:{data:{full_name:$("#aName").value.trim(),matric_no:$("#aMat").value.trim(),level:$("#aLvl").value}}})
-                :await sb.auth.signInWithPassword({email,password});
+    let res;
+    try{
+      res=up?await sb.auth.signUp({email,password,options:{data:{full_name:$("#aName").value.trim(),matric_no:$("#aMat").value.trim(),level:$("#aLvl").value}}})
+            :await sb.auth.signInWithPassword({email,password});
+    }catch(ex){res={error:{message:"Network problem. Check your connection and try again."}}}
     $("#aGo").disabled=false;
     if(res.error){err.textContent=res.error.message;err.classList.remove("hidden");return}
     closeModal();
@@ -615,6 +624,7 @@ async function onUser(user){
 /* ---------- upload ---------- */
 function openUpload(){
   if(demo){toast("Demo mode: add your Supabase keys to enable uploads.");return}
+  if(!sb){toast(OFFLINE_MSG);return}
   if(!S.user){toast("Sign in to upload a resource.");openAuth("in");return}
   const lv=S.level==="all"?100:S.level;
   openModal(`<div class="flex items-start justify-between"><div><h3 class="text-xl font-semibold tracking-tight">Upload a resource</h3>
@@ -888,7 +898,7 @@ document.documentElement.addEventListener("mouseleave",()=>$$(".lvl.tilt").forEa
 /* ---------- boot ---------- */
 $("#yr").textContent=new Date().getFullYear();
 bkInit();nbInit();setView("library");renderAuth();load();
-if(!demo){
+if(!demo&&sb){
   sb.auth.getSession().then(({data})=>onUser(data.session?.user||null));
   sb.auth.onAuthStateChange((_e,s)=>onUser(s?.user||null));
 }
