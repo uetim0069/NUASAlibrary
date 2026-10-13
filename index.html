@@ -606,9 +606,11 @@ function openAuth(mode){
     $("#aGo").disabled=true;
     let res;
     try{
-      res=up?await sb.auth.signUp({email,password,options:{data:{full_name:$("#aName").value.trim(),matric_no:$("#aMat").value.trim(),level:$("#aLvl").value}}})
-            :await sb.auth.signInWithPassword({email,password});
-    }catch(ex){res={error:{message:"Network problem. Check your connection and try again."}}}
+      const call=up?sb.auth.signUp({email,password,options:{data:{full_name:$("#aName").value.trim(),matric_no:$("#aMat").value.trim(),level:$("#aLvl").value}}})
+                   :sb.auth.signInWithPassword({email,password});
+      const slow=new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")),15000));
+      res=await Promise.race([call,slow]);
+    }catch(ex){res={error:{message:"No response from the server. Check your connection and that your Supabase project is active, then try again."}}}
     $("#aGo").disabled=false;
     if(res.error){err.textContent=res.error.message;err.classList.remove("hidden");return}
     closeModal();
@@ -617,7 +619,7 @@ function openAuth(mode){
 }
 async function onUser(user){
   S.user=user;S.profile=null;S.pending=[];
-  if(user){const {data}=await sb.from("profiles").select("*").eq("id",user.id).maybeSingle();S.profile=data;await loadPending()}
+  if(user){try{const {data}=await sb.from("profiles").select("*").eq("id",user.id).maybeSingle();S.profile=data;await loadPending()}catch(e){console.error(e)}}
   renderAuth();if(S.view==="admin")renderAdmin();
 }
 
@@ -899,8 +901,8 @@ document.documentElement.addEventListener("mouseleave",()=>$$(".lvl.tilt").forEa
 $("#yr").textContent=new Date().getFullYear();
 bkInit();nbInit();setView("library");renderAuth();load();
 if(!demo&&sb){
-  sb.auth.getSession().then(({data})=>onUser(data.session?.user||null));
-  sb.auth.onAuthStateChange((_e,s)=>onUser(s?.user||null));
+  sb.auth.getSession().then(({data})=>onUser(data.session?.user||null)).catch(e=>console.error(e));
+  sb.auth.onAuthStateChange((_e,s)=>{setTimeout(()=>onUser(s?.user||null).catch(e=>{console.error(e);renderAuth()}),0)});
 }
 </script>
 </body>
