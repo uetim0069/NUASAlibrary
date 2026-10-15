@@ -449,16 +449,16 @@ async function load(){
     S.notebooks=[["ACC 101","Principles of Accounting I exam revision","Key terms, worked examples and practice questions."],["ACC 305","Nigerian tax laws explained","CITA and PITA in plain language."],["ACC 410","Final year project guide","From topic selection to your defence."]]
       .map((n,i)=>({id:"demonb"+i,course_id:n[0],title:n[1],description:n[2],notebook_url:"",demo:true}));
   }else{
-    const [c,r,n]=await Promise.all([
+    let c,r,n;try{[c,r,n]=await Promise.all([
       sb.from("courses").select("*").order("level").order("semester").order("code"),
       sb.from("resources").select("*").eq("status","approved").order("created_at",{ascending:false}),
       sb.from("notebooks").select("*").order("created_at",{ascending:false})
-    ]);
+    ])}catch(err){console.error(err);c=r=n={data:[],error:err}}
     if(c.error||r.error){toast("Could not load the library. Check your Supabase keys and that schema.sql has run.");console.error(c.error||r.error)}
     S.courses=c.data||[];S.resources=r.data||[];S.notebooks=n.data||[];
-    await loadRatings();
   }
   S.loading=false;renderAll();
+  loadRatings().then(()=>renderRes()).catch(()=>{});
 }
 async function loadPending(){
   if(!isAdmin())return;
@@ -813,8 +813,8 @@ function openDetail(id){
 const rateTag=r=>{const x=S.rstats[r.id];return x&&x.n?`<span title="${x.n} rating${x.n>1?"s":""}">★ ${(+x.avg).toFixed(1)} (${x.n})</span>`:""};
 async function loadRatings(){
   if(!sb)return;
-  const {data}=await sb.from("resource_rating_stats").select("*");
-  S.rstats=Object.fromEntries((data||[]).map(x=>[x.resource_id,x]));
+  try{const {data}=await sb.from("resource_rating_stats").select("*");
+  S.rstats=Object.fromEntries((data||[]).map(x=>[x.resource_id,x]))}catch(e){}
 }
 const T={id:null,stars:0};
 const who=x=>esc((x.profiles&&x.profiles.full_name)||"Student");
