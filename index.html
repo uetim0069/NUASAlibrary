@@ -388,7 +388,7 @@ const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const root=document.documentElement;
 const demo=!(SUPABASE_URL&&SUPABASE_ANON_KEY);
-const sb=demo?null:supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+const sb=demo?null:supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{lock:async(n,t,fn)=>await fn()}});
 
 const S={view:"library",level:"all",sem:"all",type:"all",course:null,q:"",sort:"new",
   courses:[],resources:[],rstats:{},err:"",notebooks:[],pending:[],nbLevel:"all",bCourse:null,user:null,profile:null,loading:true};
@@ -1004,7 +1004,7 @@ $("#yr").textContent=new Date().getFullYear();
 bkInit();nbInit();setView("library");renderAuth();load();
 if(!demo){
   sb.auth.getSession().then(({data})=>onUser(data.session?.user||null));
-  sb.auth.onAuthStateChange((_e,s)=>onUser(s?.user||null));
+  sb.auth.onAuthStateChange((_e,s)=>{setTimeout(()=>onUser(s?.user||null),0)});
 }
 </script>
 </body>
