@@ -186,6 +186,14 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{ou
     </div>
   </section>
 
+  <!-- RECENTLY VIEWED -->
+  <section id="recentSec" class="px-4 sm:px-5 pb-8 hidden">
+    <div class="max-w-6xl mx-auto">
+      <h3 class="text-lg font-semibold tracking-tight">Continue where you left off</h3>
+      <div id="recentGrid" class="mt-3 grid grid-cols-[minmax(0,1fr)] sm:grid-cols-2 gap-3"></div>
+    </div>
+  </section>
+
   <!-- BROWSER -->
   <section id="browse" class="px-4 sm:px-5 pb-24">
     <div class="max-w-6xl mx-auto">
@@ -195,7 +203,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{ou
         </div>
         <div id="typeChips" class="flex gap-2 overflow-x-auto noscrollbar flex-1 min-w-0"></div>
         <select id="sort" class="inp !h-8 !w-auto !text-[13px] !pr-8">
-          <option value="new">Newest</option><option value="pop">Most downloaded</option><option value="az">A to Z</option>
+          <option value="new">Newest</option><option value="pop">Most downloaded</option><option value="az">A to Z</option><option value="top">Top rated</option>
         </select>
       </div>
 
@@ -367,6 +375,7 @@ const IC = {
   clip:'<rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>',
   pen:'<path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>',
   video:'<path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2"/>',
+  eye:'<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
   ext:'<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
   check:'<path d="M20 6 9 17l-5-5"/>',
   spark:'<path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/>',
@@ -382,7 +391,7 @@ const demo=!(SUPABASE_URL&&SUPABASE_ANON_KEY);
 const sb=demo?null:supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 
 const S={view:"library",level:"all",sem:"all",type:"all",course:null,q:"",sort:"new",
-  courses:[],resources:[],notebooks:[],pending:[],nbLevel:"all",bCourse:null,user:null,profile:null,loading:true};
+  courses:[],resources:[],rstats:{},err:"",notebooks:[],pending:[],nbLevel:"all",bCourse:null,user:null,profile:null,loading:true};
 let saved=[];try{saved=JSON.parse(localStorage.getItem("nuasa_saved")||"[]")}catch(e){}
 const isAdmin=()=>S.profile&&S.profile.role==="admin";
 const cById=id=>S.courses.find(c=>c.id===id);
@@ -433,22 +442,23 @@ const DEMO_RES=[
  ["ACC 407","Forensic accounting: case study video","video","2023/2024",58,0]
 ];
 async function load(){
-  S.loading=true;renderAll();
+  S.loading=true;S.err="";renderAll();
   if(demo){
     S.courses=COURSES.map(([code,title,level,semester,units])=>({id:code,code,title,level,semester,units}));
     S.resources=DEMO_RES.map((r,i)=>({id:"demo"+i,course_id:r[0],title:r[1],type:r[2],session:r[3],downloads:r[4],file_size:r[5],description:"Sample entry shown in demo mode.",demo:true,created_at:new Date(Date.now()-i*86400000*9).toISOString(),status:"approved"}));
     S.notebooks=[["ACC 101","Principles of Accounting I exam revision","Key terms, worked examples and practice questions."],["ACC 305","Nigerian tax laws explained","CITA and PITA in plain language."],["ACC 410","Final year project guide","From topic selection to your defence."]]
       .map((n,i)=>({id:"demonb"+i,course_id:n[0],title:n[1],description:n[2],notebook_url:"",demo:true}));
   }else{
-    const [c,r,n]=await Promise.all([
+    let c,r,n;try{[c,r,n]=await Promise.race([new Promise((_,j)=>setTimeout(()=>j(new Error("The connection is too slow or offline.")),15000)),Promise.all([
       sb.from("courses").select("*").order("level").order("semester").order("code"),
       sb.from("resources").select("*").eq("status","approved").order("created_at",{ascending:false}),
       sb.from("notebooks").select("*").order("created_at",{ascending:false})
-    ]);
-    if(c.error||r.error){toast("Could not load the library. Check your Supabase keys and that schema.sql has run.");console.error(c.error||r.error)}
+    ])])}catch(err){console.error(err);c=r=n={data:[],error:err}}
+    if(c.error||r.error){S.err=(c.error||r.error).message||"Unknown error";console.error(c.error||r.error)}
     S.courses=c.data||[];S.resources=r.data||[];S.notebooks=n.data||[];
   }
   S.loading=false;renderAll();
+  loadRatings().then(()=>renderRes()).catch(()=>{});
 }
 async function loadPending(){
   if(!isAdmin())return;
@@ -464,15 +474,16 @@ function filtered(){
     if(S.sem!=="all"&&c.semester!==S.sem)return false;
     if(S.type!=="all"&&x.type!==S.type)return false;
     if(S.course&&x.course_id!==S.course)return false;
-    if(q&&!(`${x.title} ${x.description||""} ${c.code} ${c.title}`.toLowerCase().includes(q)))return false;return true});
+    if(q&&!(`${x.title} ${x.description||""} ${c.code} ${c.title} ${x.session||""} ${(TYPES[x.type]||{}).label||""}`.toLowerCase().includes(q)))return false;return true});
   if(S.sort==="pop")r.sort((a,b)=>b.downloads-a.downloads);
+  else if(S.sort==="top")r.sort((a,b)=>((S.rstats[b.id]||{}).avg||0)-((S.rstats[a.id]||{}).avg||0)||(S.rstats[b.id]||{}).n-(S.rstats[a.id]||{}).n||0);
   else if(S.sort==="az")r.sort((a,b)=>a.title.localeCompare(b.title));
   else r.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
   return r;
 }
 
 /* ---------- render ---------- */
-function renderAll(){renderStats();renderLevels();renderChips();renderCourses();renderRes();renderAuth();renderNotebooks();bkFillCourses();nmFill();renderMarquee()}
+function renderAll(){renderStats();renderLevels();renderChips();renderCourses();renderRes();renderAuth();renderNotebooks();bkFillCourses();nmFill();renderMarquee();renderRecent()}
 function renderStats(){countUp($("#stC"),S.courses.length);countUp($("#stR"),S.resources.length);countUp($("#stD"),S.resources.reduce((s,r)=>s+(r.downloads||0),0));
   $("#savedN").textContent=saved.length?`(${saved.length})`:""}
 function renderLevels(){
@@ -524,14 +535,15 @@ function resCard(r,i){
     <div class="mt-1 text-[13px] text-mut"><span class="font-mono">${esc(c.code)}</span> · ${esc(c.title)}</div>
     ${r.description&&!r.demo?`<p class="mt-2 text-[13px] text-mut leading-relaxed clamp2">${esc(r.description)}</p>`:""}
     <div class="mt-auto pt-4 flex items-center justify-between gap-2">
-      <div class="font-mono text-xs text-mut flex flex-wrap gap-x-3">${r.session?`<span>${esc(r.session)}</span>`:""}${r.file_size?`<span>${fmtSize(r.file_size)}</span>`:""}<span>${(r.downloads||0).toLocaleString()} ↓</span></div>
-      <div class="flex gap-1.5"><button class="btn btn-s btn-sm !px-2.5" data-study="${r.id}" title="Study with NotebookLM" aria-label="Study with NotebookLM"><span class="text-brand">${ic("spark",14)}</span></button>
+      <div class="font-mono text-xs text-mut flex flex-wrap gap-x-3">${r.session?`<span>${esc(r.session)}</span>`:""}${r.file_size?`<span>${fmtSize(r.file_size)}</span>`:""}<span>${(r.downloads||0).toLocaleString()} ↓</span>${rateTag(r)}</div>
+      <div class="flex gap-1.5"><button class="btn btn-s btn-sm !px-2.5" data-detail="${r.id}" title="Preview and related" aria-label="Preview and related">${ic("eye",14)}</button><button class="btn btn-s btn-sm !px-2.5" data-study="${r.id}" title="Study with NotebookLM" aria-label="Study with NotebookLM"><span class="text-brand">${ic("spark",14)}</span></button>
       <button class="btn btn-p btn-sm" data-open="${r.id}">${r.external_url?ic("ext",14)+"Open":ic("download",14)+"Get"}</button></div>
     </div></article>`;
 }
 function renderRes(){
   const box=$("#res");
   if(S.loading){box.innerHTML=Array(6).fill('<div class="sk h-44"></div>').join("");return}
+  if(S.err){box.innerHTML=`<div class="sm:col-span-2 card p-8 text-center"><div class="text-lg font-medium">Could not load the library</div><p class="mt-1 text-sm text-mut">${esc(S.err)}</p><button class="btn btn-p btn-sm mt-4" data-retry>Try again</button></div>`;return}
   const r=filtered(),c=S.course?cById(S.course):null;
   const bits=[S.level!=="all"?S.level+" level":null,S.sem!=="all"?(S.sem===1?"1st":"2nd")+" semester":null,c?c.code:null,S.type!=="all"?TYPES[S.type].label.toLowerCase():null,S.q?`"${S.q}"`:null].filter(Boolean);
   $("#resHead").textContent=`${r.length} resource${r.length===1?"":"s"}${bits.length?" · "+bits.join(" · "):""}`;
@@ -748,6 +760,108 @@ function openStudy(id){
     </div>
     <p class="mt-4 text-xs text-mut">NotebookLM needs a Google account. Check important answers against your lecturer's notes.</p>`);
 }
+
+/* ---------- preview, related materials, recently viewed ---------- */
+let recent=[];try{recent=JSON.parse(localStorage.getItem("nuasa_recent")||"[]")}catch(e){}
+function pushRecent(id){recent=[id,...recent.filter(x=>x!==id)].slice(0,8);try{localStorage.setItem("nuasa_recent",JSON.stringify(recent))}catch(_){}renderRecent()}
+function renderRecent(){
+  const items=recent.map(id=>S.resources.find(r=>r.id===id)).filter(Boolean).slice(0,4);
+  $("#recentSec").classList.toggle("hidden",!items.length);
+  $("#recentGrid").innerHTML=items.map((r,i)=>resCard(r,i)).join("");
+}
+function relatedTo(r){
+  const c=cById(r.course_id)||{};
+  const score=x=>{const k=cById(x.course_id)||{};return (x.course_id===r.course_id?4:0)+(k.level===c.level?1:0)+(x.type===r.type?1:0)};
+  return S.resources.filter(x=>x.id!==r.id).map(x=>[x,score(x)]).filter(p=>p[1]>1)
+    .sort((a,b)=>b[1]-a[1]||(b[0].downloads||0)-(a[0].downloads||0)).slice(0,4).map(p=>p[0]);
+}
+function previewSrc(r){
+  if(r.external_url||!r.file_path)return null;
+  const u=fileUrl(r),ext=(r.file_path.split(".").pop()||"").toLowerCase();
+  if(["png","jpg","jpeg"].includes(ext))return {img:u};
+  if(["pdf","doc","docx","ppt","pptx","xls","xlsx"].includes(ext))return {frame:"https://docs.google.com/gview?embedded=1&url="+encodeURIComponent(u)};
+  return null;
+}
+function openDetail(id){
+  const r=S.resources.find(x=>x.id===id);if(!r)return;
+  if(r.demo)return toast("Sample entry. Connect Supabase to add real files.");
+  pushRecent(id);
+  const c=cById(r.course_id)||{code:"",title:""},t=TYPES[r.type]||TYPES.handout,pv=previewSrc(r),rel=relatedTo(r);
+  openModal(`<div class="flex items-start justify-between gap-3"><div class="min-w-0">
+    <span class="badge"><i style="--c:${t.c}"></i>${t.label}</span>
+    <h3 class="mt-3 text-xl font-semibold tracking-tight leading-snug">${esc(r.title)}</h3>
+    <p class="text-sm text-mut mt-1"><span class="font-mono">${esc(c.code)}</span> · ${esc(c.title)}${r.session?" · "+esc(r.session):""}</p></div>
+    <button class="btn btn-g btn-sm !px-2" onclick="closeModal()" aria-label="Close">${ic("x")}</button></div>
+    ${r.description?`<p class="mt-3 text-sm text-mut leading-relaxed">${esc(r.description)}</p>`:""}
+    <div id="pvBox" class="mt-4 rounded-lg border border-line overflow-hidden">
+      ${pv?(pv.img?`<img src="${esc(pv.img)}" alt="" loading="lazy" class="w-full max-h-[60vh] object-contain">`
+        :`<button class="w-full py-10 text-sm text-mut hover:text-fg" data-pv="${esc(pv.frame)}">${ic("eye",18)}<div class="mt-2">Tap to preview here (uses data, so only if you want it)</div></button>`)
+      :`<div class="py-8 px-4 text-center text-sm text-mut">${r.external_url?"This resource opens on another site.":"No in-page preview for this file type. Use Get file."}</div>`}
+    </div>
+    <div class="mt-4 flex flex-wrap gap-2">
+      <button class="btn btn-p" data-open="${r.id}">${ic(r.external_url?"ext":"download",15)} ${r.external_url?"Open resource":"Get file"}</button>
+      <button class="btn btn-s" data-bm="${r.id}">${ic("bookmark",15)} Save</button>
+      <button class="btn btn-s" data-study="${r.id}"><span class="text-brand">${ic("spark",15)}</span> Study with AI</button>
+    </div>
+    <div id="thread" class="mt-6">${sb?'<div class="sk h-24"></div>':""}</div>
+    <div id="thread" class="mt-6">${sb?'<div class="sk h-24"></div>':""}</div>
+    ${rel.length?`<h4 class="mt-6 text-sm font-semibold">Related materials</h4><div class="mt-2 divide-y divide-line border border-line rounded-lg overflow-hidden">
+      ${rel.map(x=>{const k=cById(x.course_id)||{code:""};return `<button class="w-full text-left flex items-center gap-3 p-3 hover:bg-[color:var(--line)]" data-detail="${x.id}"><div class="flex-1 min-w-0"><div class="text-sm font-medium truncate">${esc(x.title)}</div><div class="text-xs text-mut font-mono">${esc(k.code)} · ${(TYPES[x.type]||{}).label||""}${x.session?" · "+esc(x.session):""} · ${(x.downloads||0).toLocaleString()} ↓</div></div></button>`}).join("")}</div>`:""}`);
+  renderThread(id);
+}
+
+/* ---------- ratings, reviews and Q&A ---------- */
+const rateTag=r=>{const x=S.rstats[r.id];return x&&x.n?`<span title="${x.n} rating${x.n>1?"s":""}">★ ${(+x.avg).toFixed(1)} (${x.n})</span>`:""};
+async function loadRatings(){
+  if(!sb)return;
+  try{const {data}=await sb.from("resource_rating_stats").select("*");
+  S.rstats=Object.fromEntries((data||[]).map(x=>[x.resource_id,x]))}catch(e){}
+}
+const T={id:null,stars:0};
+const who=x=>esc((x.profiles&&x.profiles.full_name)||"Student");
+const stars=(n,sz=14)=>[1,2,3,4,5].map(i=>`<span style="color:${i<=Math.round(n)?"#f59e0b":"var(--line)"};font-size:${sz}px">★</span>`).join("");
+async function renderThread(id){
+  T.id=id;const box=$("#thread");if(!box||!sb)return;
+  const [rt,cm]=await Promise.all([
+    sb.from("ratings").select("stars,comment,created_at,user_id,profiles(full_name)").eq("resource_id",id).order("created_at",{ascending:false}),
+    sb.from("comments").select("id,body,created_at,user_id,profiles(full_name)").eq("resource_id",id).order("created_at")]);
+  if(T.id!==id||!$("#thread"))return;
+  if(rt.error||cm.error){box.innerHTML='<p class="text-sm text-mut">Reviews are not set up yet. Run the ratings SQL in Supabase.</p>';return}
+  const R=rt.data||[],C=cm.data||[],n=R.length,avg=n?R.reduce((a,x)=>a+x.stars,0)/n:0,mine=S.user&&R.find(x=>x.user_id===S.user.id);
+  T.stars=mine?mine.stars:0;
+  let rep={};if(isAdmin()&&C.length){const q=await sb.from("reports").select("comment_id").in("comment_id",C.map(x=>x.id));(q.data||[]).forEach(x=>rep[x.comment_id]=(rep[x.comment_id]||0)+1)}
+  box.innerHTML=`<h4 class="text-sm font-semibold">Ratings and reviews</h4>
+    <div class="mt-2 flex items-center gap-2">${n?`${stars(avg,18)}<span class="text-sm">${avg.toFixed(1)}</span><span class="text-xs text-mut">${n} rating${n>1?"s":""}</span>`:'<span class="text-sm text-mut">No ratings yet. Be the first.</span>'}</div>
+    ${S.user?`<div class="mt-3 card p-3"><div class="flex gap-1" id="starPick">${[1,2,3,4,5].map(i=>`<button data-star="${i}" class="text-2xl leading-none" style="color:${i<=T.stars?"#f59e0b":"var(--line)"}" aria-label="${i} star">★</button>`).join("")}</div>
+      <textarea id="rvTxt" rows="2" maxlength="500" class="inp mt-2" placeholder="Was it useful? (optional)">${esc(mine&&mine.comment||"")}</textarea>
+      <button class="btn btn-p btn-sm mt-2" data-rsave="${id}">${mine?"Update rating":"Submit rating"}</button></div>`
+      :`<button class="btn btn-s btn-sm mt-3" data-signin>Sign in to rate</button>`}
+    ${R.filter(x=>x.comment).slice(0,5).map(x=>`<div class="mt-3 text-sm"><div class="flex items-center gap-2"><b class="font-medium">${who(x)}</b>${stars(x.stars,12)}<span class="text-xs text-mut">${ago(x.created_at)}</span></div><p class="text-mut mt-0.5">${esc(x.comment)}</p></div>`).join("")}
+    <h4 class="mt-6 text-sm font-semibold">Questions and answers</h4>
+    ${C.length?C.map(x=>`<div class="mt-3 text-sm"><div class="flex items-center gap-2"><b class="font-medium">${who(x)}</b><span class="text-xs text-mut">${ago(x.created_at)}</span>${rep[x.id]?`<span class="text-xs text-red-500">⚑ ${rep[x.id]}</span>`:""}
+      <span class="ml-auto flex gap-2 text-xs text-mut">${S.user&&x.user_id!==S.user.id?`<button class="hover:text-fg" data-crep="${x.id}">Report</button>`:""}${S.user&&(x.user_id===S.user.id||isAdmin())?`<button class="hover:text-fg" data-cdel="${x.id}">Delete</button>`:""}</span></div><p class="text-mut mt-0.5 whitespace-pre-wrap break-words">${esc(x.body)}</p></div>`).join(""):'<p class="mt-2 text-sm text-mut">No questions yet.</p>'}
+    ${S.user?`<textarea id="cmTxt" rows="2" maxlength="1000" class="inp mt-3" placeholder="Ask a question or share a tip"></textarea><button class="btn btn-s btn-sm mt-2" data-cpost="${id}">Post</button>`:""}`;
+}
+document.addEventListener("click",e=>{if(e.target.closest("[data-retry]"))load()});
+document.addEventListener("click",async e=>{
+  const g=a=>e.target.closest(`[data-${a}]`)?.dataset[a],g2=a=>!!e.target.closest(`[data-${a}]`);
+  const st=g("star"),rs=g("rsave"),cp=g("cpost"),cd=g("cdel"),cr=g("crep");
+  if(g2("signin"))return openAuth("in");
+  if(st){T.stars=+st;$$("#starPick button").forEach(b=>b.style.color=+b.dataset.star<=T.stars?"#f59e0b":"var(--line)")}
+  if(rs){if(!T.stars)return toast("Tap a star first.");
+    const {error}=await sb.from("ratings").upsert({resource_id:rs,user_id:S.user.id,stars:T.stars,comment:($("#rvTxt").value.trim()||null)},{onConflict:"resource_id,user_id"});
+    if(error)return toast(error.message);toast("Thanks for rating.");await loadRatings();renderRes();renderThread(rs)}
+  if(cp){const b=$("#cmTxt").value.trim();if(!b)return;
+    const {error}=await sb.from("comments").insert({resource_id:cp,user_id:S.user.id,body:b});
+    if(error)return toast(error.message);renderThread(cp)}
+  if(cd){if(!confirm("Delete this comment?"))return;const {error}=await sb.from("comments").delete().eq("id",cd);if(error)return toast(error.message);renderThread(T.id)}
+  if(cr){const {error}=await sb.from("reports").insert({comment_id:cr,user_id:S.user.id});toast(error?(error.code==="23505"?"You already reported this.":error.message):"Reported. An admin will review it.")}
+});
+document.addEventListener("click",e=>{
+  const v=e.target.closest("[data-detail]"),p=e.target.closest("[data-pv]");
+  if(v){e.stopPropagation();openDetail(v.dataset.detail)}
+  if(p){$("#pvBox").innerHTML=`<iframe src="${esc(p.dataset.pv)}" loading="lazy" class="w-full h-[60vh]" title="Preview"></iframe>`}
+});
 document.addEventListener("click",e=>{
   const g=a=>e.target.closest(`[data-${a}]`)?.dataset[a];
   const st=g("study"),nb=g("nb"),nl=g("nl"),cp=g("copy"),sc=g("scrollto");
