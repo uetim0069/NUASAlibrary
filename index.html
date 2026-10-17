@@ -124,6 +124,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{ou
     <nav class="flex items-center gap-1 text-sm">
       <span class="hidden sm:inline"><button class="btn btn-sm btn-g navbtn" data-view="library">Library</button></span>
       <button class="btn btn-sm btn-g navbtn max-sm:!px-2" data-view="notebooks"><span class="text-brand" data-ic="spark"></span>Notebooks</button>
+      <button class="btn btn-sm btn-g navbtn max-sm:!px-1.5" data-view="opps">Jobs</button>
       <button class="btn btn-sm btn-g navbtn" data-view="saved">Saved <span id="savedN" class="font-mono text-xs text-mut"></span></button>
       <button class="btn btn-sm btn-g navbtn hidden" id="adminTab" data-view="admin">Admin <span id="pendN" class="font-mono text-xs"></span></button>
     </nav>
@@ -268,6 +269,15 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{ou
 </div>
 
 <!-- SAVED VIEW -->
+<div id="v-opps" class="hidden pt-28 px-4 sm:px-5 pb-24 min-h-[70vh]">
+  <div class="max-w-6xl mx-auto">
+    <h2 class="text-4xl sm:text-5xl font-bold tracking-[-0.035em]">Opportunities</h2>
+    <p class="mt-4 text-mut text-lg max-w-2xl leading-relaxed">Internships, scholarships and jobs for accounting students and graduates. Always confirm details on the official page before you apply.</p>
+    <div class="mt-6 flex flex-wrap items-center gap-2"><div id="opChips" class="flex flex-wrap gap-2"></div><button id="opAdd" class="btn btn-p btn-sm hidden ml-auto">Post opportunity</button></div>
+    <div id="opGrid" class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3"></div>
+  </div>
+</div>
+
 <div id="v-saved" class="hidden pt-28 px-4 sm:px-5 pb-24 min-h-[70vh]">
   <div class="max-w-6xl mx-auto">
     <h2 class="text-3xl font-semibold tracking-tight">Saved</h2>
@@ -391,7 +401,7 @@ const demo=!(SUPABASE_URL&&SUPABASE_ANON_KEY);
 const sb=demo?null:supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{lock:async(n,t,fn)=>await fn()}});
 
 const S={view:"library",level:"all",sem:"all",type:"all",course:null,q:"",sort:"new",
-  courses:[],resources:[],rstats:{},err:"",notebooks:[],pending:[],nbLevel:"all",bCourse:null,user:null,profile:null,loading:true};
+  courses:[],resources:[],rstats:{},err:"",opps:[],opk:"all",oppErr:false,notebooks:[],pending:[],nbLevel:"all",bCourse:null,user:null,profile:null,loading:true};
 let saved=[];try{saved=JSON.parse(localStorage.getItem("nuasa_saved")||"[]")}catch(e){}
 const isAdmin=()=>S.profile&&S.profile.role==="admin";
 const cById=id=>S.courses.find(c=>c.id===id);
@@ -423,10 +433,10 @@ addEventListener("scroll",()=>{$("#bar").style.width=(scrollY/Math.max(1,documen
   n.style.backdropFilter=n.style.webkitBackdropFilter=on?"blur(14px)":"none";n.style.borderBottom=on?"1px solid var(--line)":"1px solid transparent"},{passive:true});
 function setView(v){
   if(v==="admin"&&!isAdmin())v="library";
-  S.view=v;["library","notebooks","saved","admin"].forEach(x=>$("#v-"+x).classList.toggle("hidden",x!==v));
+  S.view=v;["library","notebooks","saved","admin","opps"].forEach(x=>$("#v-"+x).classList.toggle("hidden",x!==v));
   {const el=$("#v-"+v);el.classList.remove("vin");void el.offsetWidth;el.classList.add("vin")}
   $$(".navbtn").forEach(b=>b.classList.toggle("!text-fg",b.dataset.view===v));
-  if(v==="saved")renderSaved();if(v==="admin")renderAdmin();if(v==="notebooks")renderNotebooks();scrollTo({top:0,behavior:"smooth"});
+  if(v==="saved")renderSaved();if(v==="admin")renderAdmin();if(v==="notebooks")renderNotebooks();if(v==="opps")renderOpps();scrollTo({top:0,behavior:"smooth"});
 }
 document.addEventListener("click",e=>{const a=e.target.closest("[data-view]");if(a){e.preventDefault();setView(a.dataset.view)}});
 
@@ -459,6 +469,7 @@ async function load(){
   }
   S.loading=false;renderAll();
   loadRatings().then(()=>renderRes()).catch(()=>{});
+  loadOpps().then(()=>{if(S.view==="opps")renderOpps()});
 }
 async function loadPending(){
   if(!isAdmin())return;
@@ -842,6 +853,60 @@ async function renderThread(id){
       <span class="ml-auto flex gap-2 text-xs text-mut">${S.user&&x.user_id!==S.user.id?`<button class="hover:text-fg" data-crep="${x.id}">Report</button>`:""}${S.user&&(x.user_id===S.user.id||isAdmin())?`<button class="hover:text-fg" data-cdel="${x.id}">Delete</button>`:""}</span></div><p class="text-mut mt-0.5 whitespace-pre-wrap break-words">${esc(x.body)}</p></div>`).join(""):'<p class="mt-2 text-sm text-mut">No questions yet.</p>'}
     ${S.user?`<textarea id="cmTxt" rows="2" maxlength="1000" class="inp mt-3" placeholder="Ask a question or share a tip"></textarea><button class="btn btn-s btn-sm mt-2" data-cpost="${id}">Post</button>`:""}`;
 }
+
+/* ---------- opportunities: internships, scholarships, jobs ---------- */
+const OPK={internship:{l:"Internship",c:"#3b82f6"},scholarship:{l:"Scholarship",c:"#16a34a"},job:{l:"Job",c:"#f59e0b"}};
+const safeUrl=u=>/^https?:\/\//i.test(u||"")?u:"#";
+async function loadOpps(){
+  if(!sb)return;
+  try{const {data,error}=await sb.from("opportunities").select("*").order("created_at",{ascending:false});S.opps=data||[];S.oppErr=!!error}catch(e){S.oppErr=true}
+}
+const daysLeft=d=>d?Math.ceil((new Date(d+"T23:59:59")-Date.now())/864e5):null;
+function renderOpps(){
+  $("#opChips").innerHTML=[["all","All"],["internship","Internships"],["scholarship","Scholarships"],["job","Jobs"]].map(([k,l])=>`<button class="chip ${S.opk===k?"on":""}" data-opk="${k}">${l}</button>`).join("");
+  $("#opAdd").classList.toggle("hidden",!isAdmin());
+  const list=S.opps.filter(o=>S.opk==="all"||o.kind===S.opk).sort((a,b)=>{
+    const ca=daysLeft(a.deadline)<0?1:0,cb=daysLeft(b.deadline)<0?1:0;
+    return ca-cb||(b.featured?1:0)-(a.featured?1:0)||new Date(b.created_at)-new Date(a.created_at)});
+  $("#opGrid").innerHTML=list.length?list.map((o,i)=>{
+    const k=OPK[o.kind]||OPK.job,dl=daysLeft(o.deadline),closed=dl!==null&&dl<0;
+    const when=dl===null?"Rolling deadline":closed?"Closed":dl===0?"Closes today":`Closes in ${dl} day${dl>1?"s":""}`;
+    return `<article class="card hov item p-5 flex flex-col ${closed?"opacity-60":""}" style="--i:${Math.min(i,12)}">
+      <div class="flex items-center justify-between gap-2"><span class="badge"><i style="--c:${k.c}"></i>${k.l}</span>${o.featured?'<span class="text-xs font-medium text-brand">Featured</span>':""}</div>
+      <h3 class="mt-3 font-medium tracking-tight leading-snug">${esc(o.title)}</h3>
+      <p class="text-[13px] text-mut mt-0.5">${esc(o.organization||"")}${o.location?" · "+esc(o.location):""}</p>
+      ${o.description?`<p class="mt-2 text-[13px] text-mut leading-relaxed clamp2">${esc(o.description)}</p>`:""}
+      <div class="mt-auto pt-4 flex items-center gap-2"><span class="text-xs ${closed?"text-red-500":"text-mut"} font-mono">${when}</span>
+        <a class="btn btn-p btn-sm ml-auto" href="${esc(safeUrl(o.apply_url))}" target="_blank" rel="noopener noreferrer">${closed?"View":"Apply"}</a>
+        ${isAdmin()?`<button class="btn btn-s btn-sm" data-opfeat="${o.id}">${o.featured?"Unfeature":"Feature"}</button><button class="btn btn-s btn-sm" data-opdel="${o.id}">Delete</button>`:""}</div></article>`}).join("")
+    :`<div class="sm:col-span-2 lg:col-span-3 card p-10 text-center"><div class="text-lg font-medium">${S.oppErr?"Opportunities are not set up yet":"Nothing here yet"}</div><p class="mt-1 text-mut">${S.oppErr?"Run opportunities.sql in Supabase.":"New internships, scholarships and jobs will be posted here."}</p></div>`;
+}
+function openOppForm(){
+  openModal(`<div class="flex items-start justify-between"><h3 class="text-xl font-semibold tracking-tight">Post an opportunity</h3><button class="btn btn-g btn-sm !px-2" onclick="closeModal()" aria-label="Close">${ic("x")}</button></div>
+  <div class="mt-4 space-y-3">
+    <div><label class="lbl">Type</label><select id="ofK" class="inp"><option value="internship">Internship</option><option value="scholarship">Scholarship</option><option value="job">Job</option></select></div>
+    <div><label class="lbl">Title</label><input id="ofT" class="inp" maxlength="150" placeholder="Audit Intern, 2027 Cohort"></div>
+    <div><label class="lbl">Organization</label><input id="ofO" class="inp" maxlength="120" placeholder="Company or sponsor"></div>
+    <div><label class="lbl">Location (optional)</label><input id="ofL" class="inp" maxlength="100" placeholder="Lagos, Uyo, Remote"></div>
+    <div><label class="lbl">Apply link</label><input id="ofU" class="inp" type="url" placeholder="https://"></div>
+    <div><label class="lbl">Deadline (optional)</label><input id="ofD" class="inp" type="date"></div>
+    <div><label class="lbl">Short description</label><textarea id="ofX" class="inp" rows="3" maxlength="600"></textarea></div>
+    <label class="flex items-center gap-2 text-sm"><input id="ofF" type="checkbox"> Feature at the top</label>
+    <button class="btn btn-p w-full" data-opsave>Publish</button></div>`);
+}
+document.addEventListener("click",async e=>{
+  const g=a=>e.target.closest(`[data-${a}]`)?.dataset[a];
+  const k=g("opk"),fe=g("opfeat"),de=g("opdel");
+  if(k){S.opk=k;renderOpps()}
+  if(e.target.closest("#opAdd"))openOppForm();
+  if(e.target.closest("[data-opsave]")){
+    const row={kind:$("#ofK").value,title:$("#ofT").value.trim(),organization:$("#ofO").value.trim(),location:$("#ofL").value.trim()||null,apply_url:$("#ofU").value.trim(),deadline:$("#ofD").value||null,description:$("#ofX").value.trim()||null,featured:$("#ofF").checked};
+    if(!row.title||!row.organization||!/^https?:\/\//i.test(row.apply_url))return toast("Add a title, organization and a link starting with https://");
+    const {error}=await sb.from("opportunities").insert(row);if(error)return toast(error.message);
+    closeModal();toast("Published.");await loadOpps();renderOpps()}
+  if(fe){const o=S.opps.find(x=>x.id===fe);const {error}=await sb.from("opportunities").update({featured:!o.featured}).eq("id",fe);if(error)return toast(error.message);await loadOpps();renderOpps()}
+  if(de){if(!confirm("Delete this opportunity?"))return;const {error}=await sb.from("opportunities").delete().eq("id",de);if(error)return toast(error.message);await loadOpps();renderOpps()}
+});
 document.addEventListener("click",e=>{if(e.target.closest("[data-retry]"))load()});
 document.addEventListener("click",async e=>{
   const g=a=>e.target.closest(`[data-${a}]`)?.dataset[a],g2=a=>!!e.target.closest(`[data-${a}]`);
