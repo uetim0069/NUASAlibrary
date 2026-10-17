@@ -1026,7 +1026,10 @@ const FLAIRS={announcement:"Announcement",question:"Question",discussion:"Discus
 const pv=p=>p.post_votes&&p.post_votes[0]?p.post_votes[0].count:0,pcn=p=>p.comments&&p.comments[0]?p.comments[0].count:0;
 async function loadNews(){
   if(!sb)return;
-  try{const {data,error}=await sb.from("posts").select("id,user_id,flair,title,body,image_path,link_url,pinned,created_at,profiles(full_name),post_votes(count),comments(count)").order("created_at",{ascending:false});
+  try{const cols="id,user_id,flair,title,body,image_path,link_url,pinned,created_at",ord=["created_at",{ascending:false}];
+    let {data,error}=await sb.from("posts").select(cols+",profiles(full_name),post_votes(count),comments(count)").order(...ord);
+    S.postsMsg=error?error.message:"";
+    if(error){console.warn(error);const r=await sb.from("posts").select(cols).order(...ord);data=r.data;error=r.error;if(!error)S.postsMsg=""}
     S.postsErr=!!error;S.posts=data||[];S.myv=new Set();
     if(S.user){const v=await sb.from("post_votes").select("post_id").eq("user_id",S.user.id);S.myv=new Set((v.data||[]).map(x=>x.post_id))}
   }catch(e){S.postsErr=true}
@@ -1041,7 +1044,7 @@ function renderNews(){
     <div class="px-4 cursor-pointer" data-post="${p.id}"><h3 class="font-medium leading-snug">${esc(p.title)}</h3>${p.body?`<p class="mt-1 text-sm whitespace-pre-wrap break-words" style="display:-webkit-box;-webkit-line-clamp:6;-webkit-box-orient:vertical;overflow:hidden">${rich(p.body)}</p>`:""}${postMedia(p)}</div>
     <div class="px-4 pt-3 pb-1 flex justify-between text-xs text-mut"><span>${n?"👍 "+n:""}</span><span class="cursor-pointer" data-post="${p.id}">${c} comment${c===1?"":"s"}</span></div>
     <div class="mx-2 mb-1 border-t border-line grid grid-cols-2"><button class="py-2.5 text-sm font-medium rounded-lg hover:bg-[color:var(--sub)] ${on?"text-brand":"text-mut"}" data-vote="${p.id}">👍 ${on?"Liked":"Like"}</button><button class="py-2.5 text-sm font-medium text-mut rounded-lg hover:bg-[color:var(--sub)]" data-post="${p.id}">💬 Comment</button></div></article>`}).join("")
-  :`<div class="card p-10 text-center"><div class="text-lg font-medium">${S.postsErr?"The feed is not set up yet":"No posts yet"}</div><p class="mt-1 text-mut">${S.postsErr?"Run news.sql in Supabase.":"Be the first to post something."}</p></div>`;
+  :`<div class="card p-10 text-center"><div class="text-lg font-medium">${S.postsErr?"The feed is not set up yet":"No posts yet"}</div><p class="mt-1 text-mut">${S.postsErr?"Supabase says: "+esc(S.postsMsg||"unknown error")+". Run complete_setup.sql, then wait a minute and reload.":"Be the first to post something."}</p></div>`;
 }
 function renderSide(){
   const b=S.board||[],j=(S.opps||[]).filter(o=>!(daysLeft(o.deadline)<0)).slice(0,3);
