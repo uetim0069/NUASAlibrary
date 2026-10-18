@@ -1,11 +1,12 @@
-/* Project Helper backend (Vercel serverless function).
-   Keeps the Anthropic key secret, checks the user is signed in, limits daily use, and streams the text back. */
+/* Project Helper backend (Vercel serverless function, free plan).
+   Uses Google's free Gemini API. Keeps the key secret, checks sign-in, limits use per student and per day, streams text back. */
 const SB_URL = process.env.SUPABASE_URL || "https://wcikankedtelqbojzjdm.supabase.co";
 const SB_ANON = process.env.SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndjaWthbmtlZHRlbHFib2p6amRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE4NzQ4ODAsImV4cCI6MjEwNzQ1MDg4MH0.lo1ZscA3uVBsggtxHW9U2YPPDhQAWYa3pATioq83wQ4";
 const SB_SERVICE = process.env.SUPABASE_SERVICE_KEY;
-const AI_KEY = process.env.ANTHROPIC_API_KEY;
-const MODEL = process.env.PROJECT_MODEL || "claude-sonnet-5-5";
-const DAILY_LIMIT = parseInt(process.env.PROJECT_DAILY_LIMIT || "20", 10); // AI calls per user per 24h (8 calls = 1 full draft)
+const AI_KEY = process.env.GEMINI_API_KEY;
+const MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+const USER_LIMIT = parseInt(process.env.PROJECT_USER_LIMIT || "8", 10);    // AI calls per student per 24h (8 = one full draft)
+const GLOBAL_LIMIT = parseInt(process.env.PROJECT_GLOBAL_LIMIT || "160", 10); // AI calls for everyone per 24h (protects the free quota)
 
 const SYSTEM = `You are an expert academic research assistant, subject tutor and project writer for university students. You write complete, well-reasoned, academically sound student project drafts, one section at a time.
 
@@ -34,6 +35,7 @@ const LEVELS = ["High School", "Undergraduate / Bachelor's", "Master's"];
 const CITES = ["APA 7th edition", "Harvard", "MLA", "Chicago", "IEEE"];
 const clean = (v, n) => String(v || "").replace(/[\u0000-\u001f]+/g, " ").trim().slice(0, n);
 const fail = (res, code, error) => { res.statusCode = code; res.setHeader("Content-Type", "application/json"); res.end(JSON.stringify({ error })); };
+const total = r => parseInt((r.headers.get("content-range") || "0/0").split("/")[1], 10) || 0;
 
 module.exports = async (req, res) => {
   if (req.method !== "POST") return fail(res, 405, "Method not allowed.");
@@ -49,7 +51,7 @@ module.exports = async (req, res) => {
     user = await u.json();
   } catch (e) { return fail(res, 502, "Could not verify your sign-in. Try again."); }
 
-  // 2. Validate input (the client can only choose a section id and project details, never free-form prompts)
+  // 2. Validate input (the client can only pick a section id and project details, never free-form prompts)
   const body = req.body || {};
   const sec = SECTIONS[body.section];
   if (!sec) return fail(res, 400, "Unknown section.");
@@ -62,20 +64,23 @@ module.exports = async (req, res) => {
   const words = Math.min(6000, Math.max(1500, parseInt(f.words, 10) || 4000));
   const prior = String(body.prior || "").slice(0, 15000);
 
-  // 3. Daily limit per user
-  const since = new Date(Date.now() - 864e5).toISOString();
-  const H = { apikey: SB_SERVICE, Authorization: "Bearer " + SB_SERVICE };
+  // 3. Limits: per student and for the whole site (keeps usage inside the free quota)
+  const since = encodeURIComponent(new Date(Date.now() - 864e5).toISOString());
+  const H = { apikey: SB_SERVICE, Authorization: "Bearer " + SB_SERVICE, Prefer: "count=exact", Range: "0-0" };
   try {
-    const c = await fetch(`${SB_URL}/rest/v1/project_usage?user_id=eq.${user.id}&created_at=gte.${encodeURIComponent(since)}&select=id`, { headers: { ...H, Prefer: "count=exact", Range: "0-0" } });
-    if (!c.ok) throw new Error("count");
-    const total = parseInt((c.headers.get("content-range") || "0/0").split("/")[1], 10) || 0;
-    if (total >= DAILY_LIMIT) return fail(res, 429, "You have reached today's limit for the Project Helper. Please come back tomorrow.");
-    await fetch(SB_URL + "/rest/v1/project_usage", { method: "POST", headers: { ...H, "Content-Type": "application/json", Prefer: "return=minimal" }, body: JSON.stringify({ user_id: user.id, section: body.section }) });
+    const [mine, all] = await Promise.all([
+      fetch(`${SB_URL}/rest/v1/project_usage?user_id=eq.${user.id}&created_at=gte.${since}&select=id`, { headers: H }),
+      fetch(`${SB_URL}/rest/v1/project_usage?created_at=gte.${since}&select=id`, { headers: H }),
+    ]);
+    if (!mine.ok || !all.ok) throw new Error("count");
+    if (total(mine) >= USER_LIMIT) return fail(res, 429, "You have used today's Project Helper draft. Please come back tomorrow.");
+    if (total(all) >= GLOBAL_LIMIT) return fail(res, 429, "The Project Helper is full for today because the free quota is used up. Please try again tomorrow.");
+    await fetch(SB_URL + "/rest/v1/project_usage", { method: "POST", headers: { apikey: SB_SERVICE, Authorization: "Bearer " + SB_SERVICE, "Content-Type": "application/json", Prefer: "return=minimal" }, body: JSON.stringify({ user_id: user.id, section: body.section }) });
   } catch (e) { return fail(res, 500, "Usage check failed. Please try again."); }
 
-  // 4. Build the prompt and stream the answer
+  // 4. Build the prompt and stream the answer from Gemini
   const target = sec.fixed !== undefined ? sec.fixed : Math.round(words * sec.share);
-  const maxTokens = sec.share ? Math.min(3600, Math.ceil(target * 1.7) + 300) : 1200;
+  const maxTokens = sec.share ? Math.min(4000, Math.ceil(target * 1.8) + 400) : 1200;
   const msg = `PROJECT DETAILS
 Topic: ${topic}
 Academic level: ${level}
@@ -89,15 +94,20 @@ ${sec.t}${target ? " Aim for about " + target + " words for this section." : ""}
 PROJECT TEXT WRITTEN SO FAR (for consistency only; do not repeat it):
 ${prior || "(nothing yet)"}`;
 
+  const gen = { maxOutputTokens: maxTokens, temperature: 0.7 };
+  if (/2\.5-flash/.test(MODEL)) gen.thinkingConfig = { thinkingBudget: 0 }; // spend the quota on writing, not hidden reasoning
   let up;
   try {
-    up = await fetch("https://api.anthropic.com/v1/messages", {
+    up = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:streamGenerateContent?alt=sse`, {
       method: "POST",
-      headers: { "x-api-key": AI_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-      body: JSON.stringify({ model: MODEL, max_tokens: maxTokens, stream: true, system: SYSTEM, messages: [{ role: "user", content: msg }] }),
+      headers: { "x-goog-api-key": AI_KEY, "content-type": "application/json" },
+      body: JSON.stringify({ systemInstruction: { parts: [{ text: SYSTEM }] }, contents: [{ role: "user", parts: [{ text: msg }] }], generationConfig: gen }),
     });
   } catch (e) { return fail(res, 502, "The assistant could not be reached. Try again."); }
-  if (!up.ok) { console.error("anthropic", up.status, await up.text().catch(() => "")); return fail(res, 502, "The assistant is busy right now. Try again in a minute."); }
+  if (!up.ok) {
+    console.error("gemini", up.status, await up.text().catch(() => ""));
+    return fail(res, up.status === 429 ? 429 : 502, up.status === 429 ? "The free AI quota is busy right now. Wait a minute and tap Continue." : "The assistant is unavailable right now. Try again shortly.");
+  }
 
   res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-cache, no-transform", "X-Accel-Buffering": "no" });
   const dec = new TextDecoder();
@@ -110,8 +120,9 @@ ${prior || "(nothing yet)"}`;
         const line = buf.slice(0, i).trim(); buf = buf.slice(i + 1);
         if (!line.startsWith("data:")) continue;
         let ev; try { ev = JSON.parse(line.slice(5)); } catch (e) { continue; }
-        if (ev.type === "content_block_delta" && ev.delta && ev.delta.type === "text_delta") res.write(ev.delta.text);
-        else if (ev.type === "error") throw new Error("upstream");
+        if (ev.error) throw new Error("upstream");
+        const parts = ev.candidates && ev.candidates[0] && ev.candidates[0].content && ev.candidates[0].content.parts;
+        if (parts) for (const p of parts) if (p.text) res.write(p.text);
       }
     }
     res.end();

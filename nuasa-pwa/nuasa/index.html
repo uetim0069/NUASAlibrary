@@ -634,6 +634,7 @@ sb&&(sb.auth.getSession().then(({data})=>onUser(data.session?.user||null)),sb.au
 
 
 
+
 /* ---------- Project Helper (AI draft generator) ---------- */
 const PJS=[["title","Title page"],["c1","Chapter 1: Introduction"],["c2","Chapter 2: Literature Review"],["c3","Chapter 3: Methodology"],["c4","Chapter 4: Findings and Discussion"],["c5","Chapter 5: Conclusion"],["refs","References"],["abs","Abstract"]],
 PJO=["title","abs","c1","c2","c3","c4","c5","refs"],
@@ -660,7 +661,7 @@ function pjUI(){const started=Object.keys(PJ.parts).length>0,f=PJ.form,n=PJS.fil
  $("#md").innerHTML=mh("Project Helper","Generates a full draft (title page, 5 chapters, references and abstract) to build your own project on.")+(started?`
  <div style="margin-top:16px;display:grid;gap:12px">
   <div class="pjbar"><i id="pjBar" style="width:${n/PJS.length*100}%"></i></div>
-  <div class="note">${PJ.run?"Writing: "+esc(PJ.cur)+" ("+n+" of "+PJS.length+" done). You can close this window and it keeps going.":pjFin()?"Draft complete.":PJ.err?esc(PJ.err):"Paused."}</div>
+  <div class="note">${PJ.run?"Writing: "+esc(PJ.cur)+" ("+n+" of "+PJS.length+" done). You can close this window and it keeps going.":pjFin()?"Draft complete.":PJ.err?"":"Paused."}</div>
   ${PJ.err&&!PJ.run?`<p class="note" style="color:var(--r)">${esc(PJ.err)}</p>`:""}
   <div class="pjo" id="pjOut"></div>
   <div style="display:flex;gap:10px;flex-wrap:wrap">${PJ.run?'<button class="btn s" id="pjStop">Stop</button>':(pjFin()?"":'<button class="btn p" id="pjGo">Continue</button>')}<button class="btn s" id="pjCopy">Copy text</button><button class="btn p" id="pjDoc">Download Word file</button>${PJ.run?"":'<button class="btn s" id="pjNew">New project</button>'}</div>
@@ -671,7 +672,7 @@ function pjUI(){const started=Object.keys(PJ.parts).length>0,f=PJ.form,n=PJS.fil
   <label>Field of study<input class="inp" id="pjF" maxlength="100" value="${esc(f.field)}"></label>
   <label>Length<select class="inp" id="pjW">${[[2500,"About 2,500 words (short)"],[4000,"About 4,000 words"],[6000,"About 6,000 words (long)"]].map(x=>`<option value="${x[0]}" ${x[0]==f.words?"selected":""}>${x[1]}</option>`).join("")}</select></label>
   <label>Citation style<select class="inp" id="pjC">${opt(["APA 7th edition","Harvard","MLA","Chicago","IEEE"],f.cite)}</select></label>
-  <p class="note">Takes a few minutes. The result is a starting draft: check every fact and reference, add your own data, and write it up in your own words. You can only generate a limited number of drafts per day.</p>
+  <p class="note">Takes a few minutes. The result is a starting draft: check every fact and reference, add your own data, and write it up in your own words. Each student can make one draft a day, and it can fill up on busy days. Don't type personal details in the topic.</p>
   <p class="note" id="pjE" style="color:var(--r)"></p><button class="btn p" id="pjGo">Generate draft</button></div>`);
  pjBind();pjPaint()}
 function pjBind(){const g=id=>document.getElementById(id);
@@ -686,13 +687,15 @@ function pjBind(){const g=id=>document.getElementById(id);
 async function pjRun(){if(PJ.run)return;PJ.run=true;PJ.err="";
  const {data:{session}}=await sb.auth.getSession();if(!session){PJ.run=false;closeModal();toast("Please sign in again.");return openAuth("in")}
  for(const [id,label] of PJS){if(PJ.done[id])continue;PJ.cur=label;PJ.parts[id]="";PJ.ctl=new AbortController();pjUI();
-  try{const r=await fetch("/api/project",{method:"POST",signal:PJ.ctl.signal,headers:{"content-type":"application/json",authorization:"Bearer "+session.access_token},body:JSON.stringify({section:id,form:PJ.form,prior:pjPrior(id)})});
+  try{const r=await fetch("/api/project",{method:"POST",signal:PJ.ctl.signal,headers:{"content-type":"application/json",authorization:"Bearer "+session.access_token},body:JSON.stringify({section:id,form:PJ.form,prior:pjPrior(id),first:!Object.keys(PJ.done).length})});
    if(!r.ok){let m="";try{m=(await r.json()).error}catch(e){}throw new Error(m||"The assistant is unavailable right now. Please try again shortly.")}
    const rd=r.body.getReader(),dc=new TextDecoder();let acc="";
    for(;;){const {done,value}=await rd.read();if(done)break;acc+=dc.decode(value,{stream:true});PJ.parts[id]=acc.replace(/\[\[ERROR\]\]\s*$/,"");pjPaint()}
    if(/\[\[ERROR\]\]\s*$/.test(acc))throw new Error("The connection was interrupted. Tap Continue to retry this part.");
+   if(acc.trim().length<20)throw new Error("The assistant returned nothing. Tap Continue to retry.");
    PJ.done[id]=1}
-  catch(e){delete PJ.parts[id];PJ.run=false;PJ.err=e.name==="AbortError"?"Stopped. Tap Continue to resume.":(e.message||"Something went wrong.");if($("#pjOut")||$("#bk").classList.contains("show"))pjUI();return}}
+  catch(e){delete PJ.parts[id];PJ.run=false;PJ.err=e.name==="AbortError"?"Stopped. Tap Continue to resume.":(e.message||"Something went wrong.");if($("#pjOut")||$("#bk").classList.contains("show"))pjUI();return}
+  await new Promise(r=>setTimeout(r,6500))}
  PJ.run=false;PJ.cur="";if($("#pjOut"))pjUI();else toast("Your project draft is ready. Open Project Helper to view it.")}
 function openProject(){if(!sb)return toast("Library service is not reachable.");if(!S.user){toast("Sign in to use the Project Helper.");return openAuth("in")}
  openModal("",true);pjUI()}

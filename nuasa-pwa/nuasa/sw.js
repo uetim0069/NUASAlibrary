@@ -1,5 +1,5 @@
 /* NUASA Library service worker. Bump VERSION to force clients to refresh cached files. */
-const VERSION = "v3";
+const VERSION = "v5";
 const SHELL = "nuasa-shell-" + VERSION;
 const ASSETS = "nuasa-assets-" + VERSION;
 const PRECACHE = ["/", "/offline.html", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png", "/icons/apple-touch-icon.png"];
