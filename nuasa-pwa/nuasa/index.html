@@ -673,7 +673,7 @@ function pjUI(){const started=Object.keys(PJ.parts).length>0,f=PJ.form,n=PJS.fil
   <label>Length<select class="inp" id="pjW">${[[2500,"About 2,500 words (short)"],[4000,"About 4,000 words"],[6000,"About 6,000 words (long)"]].map(x=>`<option value="${x[0]}" ${x[0]==f.words?"selected":""}>${x[1]}</option>`).join("")}</select></label>
   <label>Citation style<select class="inp" id="pjC">${opt(["APA 7th edition","Harvard","MLA","Chicago","IEEE"],f.cite)}</select></label>
   <p class="note">Takes a few minutes. The result is a starting draft: check every fact and reference, add your own data, and write it up in your own words. Each student can make one draft a day, and it can fill up on busy days. Don't type personal details in the topic.</p>
-  <p class="note" id="pjE" style="color:var(--r)"></p><button class="btn p" id="pjGo">Generate draft</button></div>`);
+  <p class="note" id="pjE" style="color:var(--r)">${esc(PJ.err||"")}</p><button class="btn p" id="pjGo">Generate draft</button></div>`);
  pjBind();pjPaint()}
 function pjBind(){const g=id=>document.getElementById(id);
  if(g("pjGo"))g("pjGo").onclick=()=>{if(!PJ.run&&!Object.keys(PJ.parts).length){const t=g("pjT").value.trim();if(t.length<8){g("pjE").textContent="Describe your topic in a sentence.";return}
@@ -688,7 +688,7 @@ async function pjRun(){if(PJ.run)return;PJ.run=true;PJ.err="";
  const {data:{session}}=await sb.auth.getSession();if(!session){PJ.run=false;closeModal();toast("Please sign in again.");return openAuth("in")}
  for(const [id,label] of PJS){if(PJ.done[id])continue;PJ.cur=label;PJ.parts[id]="";PJ.ctl=new AbortController();pjUI();
   try{const r=await fetch("/api/project",{method:"POST",signal:PJ.ctl.signal,headers:{"content-type":"application/json",authorization:"Bearer "+session.access_token},body:JSON.stringify({section:id,form:PJ.form,prior:pjPrior(id),first:!Object.keys(PJ.done).length})});
-   if(!r.ok){let m="";try{m=(await r.json()).error}catch(e){}throw new Error(m||"The assistant is unavailable right now. Please try again shortly.")}
+   if(!r.ok){let m="";try{m=(await r.json()).error}catch(e){}if(!m&&r.status===404)m="The Project Helper is not installed on the server yet (the api folder is missing from GitHub).";throw new Error(m||"The assistant is unavailable right now (error "+r.status+"). Please try again shortly.")}
    const rd=r.body.getReader(),dc=new TextDecoder();let acc="";
    for(;;){const {done,value}=await rd.read();if(done)break;acc+=dc.decode(value,{stream:true});PJ.parts[id]=acc.replace(/\[\[ERROR\]\]\s*$/,"");pjPaint()}
    if(/\[\[ERROR\]\]\s*$/.test(acc))throw new Error("The connection was interrupted. Tap Continue to retry this part.");
