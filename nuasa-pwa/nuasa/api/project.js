@@ -4,6 +4,8 @@ const SB_URL = process.env.SUPABASE_URL || "https://wcikankedtelqbojzjdm.supabas
 const SB_ANON = process.env.SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndjaWthbmtlZHRlbHFib2p6amRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE4NzQ4ODAsImV4cCI6MjEwNzQ1MDg4MH0.lo1ZscA3uVBsggtxHW9U2YPPDhQAWYa3pATioq83wQ4";
 const SB_SERVICE = process.env.SUPABASE_SERVICE_KEY;
 const AI_KEY = process.env.GEMINI_API_KEY;
+// Old-style service_role keys are JWTs (start with "eyJ") and go in both headers; new-style secret keys (sb_secret_...) go in "apikey" only.
+const SRV = k => (k && k.startsWith("eyJ")) ? { apikey: k, Authorization: "Bearer " + k } : { apikey: k };
 const MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 const USER_LIMIT = parseInt(process.env.PROJECT_USER_LIMIT || "8", 10);    // AI calls per student per 24h (8 = one full draft)
 const GLOBAL_LIMIT = parseInt(process.env.PROJECT_GLOBAL_LIMIT || "160", 10); // AI calls for everyone per 24h (protects the free quota)
@@ -66,7 +68,7 @@ module.exports = async (req, res) => {
 
   // 3. Limits: per student and for the whole site (keeps usage inside the free quota)
   const since = encodeURIComponent(new Date(Date.now() - 864e5).toISOString());
-  const H = { apikey: SB_SERVICE, Authorization: "Bearer " + SB_SERVICE, Prefer: "count=exact", Range: "0-0" };
+  const H = { ...SRV(SB_SERVICE), Prefer: "count=exact", Range: "0-0" };
   try {
     const [mine, all] = await Promise.all([
       fetch(`${SB_URL}/rest/v1/project_usage?user_id=eq.${user.id}&created_at=gte.${since}&select=id`, { headers: H }),
@@ -75,7 +77,7 @@ module.exports = async (req, res) => {
     if (!mine.ok || !all.ok) throw new Error("count");
     if (total(mine) >= USER_LIMIT) return fail(res, 429, "You have used today's Project Helper draft. Please come back tomorrow.");
     if (total(all) >= GLOBAL_LIMIT) return fail(res, 429, "The Project Helper is full for today because the free quota is used up. Please try again tomorrow.");
-    await fetch(SB_URL + "/rest/v1/project_usage", { method: "POST", headers: { apikey: SB_SERVICE, Authorization: "Bearer " + SB_SERVICE, "Content-Type": "application/json", Prefer: "return=minimal" }, body: JSON.stringify({ user_id: user.id, section: body.section }) });
+    await fetch(SB_URL + "/rest/v1/project_usage", { method: "POST", headers: { ...SRV(SB_SERVICE), "Content-Type": "application/json", Prefer: "return=minimal" }, body: JSON.stringify({ user_id: user.id, section: body.section }) });
   } catch (e) { return fail(res, 500, "Usage check failed. Please try again."); }
 
   // 4. Build the prompt and stream the answer from Gemini
