@@ -77,7 +77,6 @@ module.exports = async (req, res) => {
     if (!mine.ok || !all.ok) throw new Error("count");
     if (total(mine) >= USER_LIMIT) return fail(res, 429, "You have used today's Project Helper draft. Please come back tomorrow.");
     if (total(all) >= GLOBAL_LIMIT) return fail(res, 429, "The Project Helper is full for today because the free quota is used up. Please try again tomorrow.");
-    await fetch(SB_URL + "/rest/v1/project_usage", { method: "POST", headers: { ...SRV(SB_SERVICE), "Content-Type": "application/json", Prefer: "return=minimal" }, body: JSON.stringify({ user_id: user.id, section: body.section }) });
   } catch (e) { return fail(res, 500, "Usage check failed. Please try again."); }
 
   // 4. Build the prompt and stream the answer from Gemini
@@ -108,8 +107,11 @@ ${prior || "(nothing yet)"}`;
   } catch (e) { return fail(res, 502, "The assistant could not be reached. Try again."); }
   if (!up.ok) {
     console.error("gemini", up.status, await up.text().catch(() => ""));
-    return fail(res, up.status === 429 ? 429 : 502, up.status === 429 ? "The free AI quota is busy right now. Wait a minute and tap Continue." : "The assistant is unavailable right now. Try again shortly.");
+    return fail(res, up.status === 429 ? 429 : 502, up.status === 429 ? "The free AI quota is busy right now. Wait a minute and tap Continue." : "The assistant is unavailable right now (code " + up.status + "). Check the model name and API key, then try again.");
   }
+
+  // Count this call only now that the AI accepted it, so failed attempts do not use up a student's daily draft.
+  try { await fetch(SB_URL + "/rest/v1/project_usage", { method: "POST", headers: { ...SRV(SB_SERVICE), "Content-Type": "application/json", Prefer: "return=minimal" }, body: JSON.stringify({ user_id: user.id, section: body.section }) }); } catch (e) {}
 
   res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-cache, no-transform", "X-Accel-Buffering": "no" });
   const dec = new TextDecoder();

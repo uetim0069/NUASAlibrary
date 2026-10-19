@@ -1,8 +1,11 @@
 /* NUASA Library service worker. Bump VERSION to force clients to refresh cached files. */
-const VERSION = "v6";
+const VERSION = "v8";
 const SHELL = "nuasa-shell-" + VERSION;
 const ASSETS = "nuasa-assets-" + VERSION;
+const FILES = "nuasa-files"; // files students saved for offline. Never deleted by updates.
 const PRECACHE = ["/", "/offline.html", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png", "/icons/apple-touch-icon.png"];
+// Public, read-only library data that may be shown offline (never user, profile or pending-review data).
+const DATA = /^\/rest\/v1\/(courses|notebooks|prep_classes|opportunities|cbt_questions|resources)(\?|$)/;
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(SHELL).then(c => c.addAll(PRECACHE)).then(() => self.skipWaiting()));
@@ -11,10 +14,24 @@ self.addEventListener("install", e => {
 self.addEventListener("activate", e => {
   e.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k.startsWith("nuasa-") && k !== SHELL && k !== ASSETS).map(k => caches.delete(k))))
+      .then(keys => Promise.all(keys.filter(k => k.startsWith("nuasa-") && ![SHELL, ASSETS, FILES].includes(k)).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
+
+// Library data: use the network, but fall back to the last copy when offline or when the connection is very slow.
+async function dataFirst(req) {
+  const cache = await caches.open(ASSETS);
+  const net = fetch(req).then(res => { if (res.ok) cache.put(req, res.clone()); return res; });
+  net.catch(() => {});
+  try {
+    return await Promise.race([net, new Promise((_, no) => setTimeout(no, 6000))]);
+  } catch (e) {
+    const hit = await cache.match(req, { ignoreVary: true });
+    if (hit) return hit;
+    try { return await net; } catch (_) { return Response.error(); }
+  }
+}
 
 self.addEventListener("fetch", e => {
   const req = e.request, url = new URL(req.url);
@@ -32,10 +49,16 @@ self.addEventListener("fetch", e => {
     return;
   }
 
-  // Google Fonts and same-origin static files: stale-while-revalidate.
-  const isFont = url.hostname === "fonts.googleapis.com" || url.hostname === "fonts.gstatic.com";
+  // Course, file and class lists (approved items only).
+  if (url.hostname.endsWith(".supabase.co") && DATA.test(url.pathname) && (!url.pathname.includes("/resources") || url.search.includes("status=eq.approved"))) {
+    e.respondWith(dataFirst(req));
+    return;
+  }
+
+  // Fonts, app scripts from the CDN, and same-origin static files: serve the saved copy fast, refresh in the background.
+  const isCdn = ["fonts.googleapis.com", "fonts.gstatic.com", "cdn.jsdelivr.net"].includes(url.hostname);
   const isStatic = url.origin === location.origin && /\.(png|jpe?g|svg|webp|ico|css|js|woff2?|webmanifest)$/i.test(url.pathname);
-  if (isFont || isStatic) {
+  if (isCdn || isStatic) {
     e.respondWith(
       caches.open(ASSETS).then(cache =>
         cache.match(req).then(hit => {
@@ -45,5 +68,5 @@ self.addEventListener("fetch", e => {
       )
     );
   }
-  // Everything else (Supabase, payments, uploads, embeds) always goes straight to the network.
+  // Everything else (sign-in, uploads, payments, embeds, file downloads) always goes straight to the network.
 });
