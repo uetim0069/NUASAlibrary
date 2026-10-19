@@ -162,6 +162,72 @@ footer{border-top:1px solid var(--line);padding:48px 0 calc(48px + env(safe-area
 @keyframes mIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:none}}
 #drawer.open nav .mi.big{animation:mIn .35s cubic-bezier(.2,.8,.2,1) both}
 #drawer.open nav .mi.big:nth-of-type(1){animation-delay:.08s}#drawer.open nav .mi.big:nth-of-type(2){animation-delay:.12s}#drawer.open nav .mi.big:nth-of-type(3){animation-delay:.16s}#drawer.open nav .mi.big:nth-of-type(4){animation-delay:.2s}#drawer.open nav .mi.big:nth-of-type(5){animation-delay:.24s}
+/* ---- Admin console ---- */
+#erp,#pjp{position:fixed;inset:0;z-index:86;background:var(--bg);display:none;flex-direction:column;padding-top:env(safe-area-inset-top,0)}#erp.show,#pjp.show{display:flex}
+.eTop{display:flex;align-items:center;gap:12px;min-height:56px;padding:8px 16px;border-bottom:1px solid var(--line);flex:none}.eTop b{font:700 19px var(--d);letter-spacing:-.02em}
+.eBody{display:flex;flex:1;min-height:0}
+.eSide{width:248px;flex:none;border-right:1px solid var(--line);overflow:auto;padding:12px 10px 40px}
+.eSide a{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:10px;font-size:15px;color:var(--mut);cursor:pointer;min-height:40px}
+.eSide a:hover{background:var(--sub);color:var(--fg)}.eSide a.on{background:var(--glow);color:var(--fg);font-weight:600}
+.eSide a em{margin-left:auto;font-style:normal;font-size:12.5px;color:var(--mut)}
+.eSide .gl{font-size:12.5px;color:var(--mut);padding:16px 12px 6px}
+.eMain{flex:1;min-width:0;overflow:auto;padding:22px 24px 80px}
+.eH{font:700 28px/1.1 var(--d);letter-spacing:-.03em}.eH3{font:700 18px var(--d);margin-bottom:10px}
+.eHd{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}.eBar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.eK{display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:12px;margin:18px 0}
+.eKc{padding:16px;text-align:left;display:flex;flex-direction:column;gap:6px;cursor:pointer;color:var(--fg);font:inherit}.eKc b{font:700 30px/1 var(--d);letter-spacing:-.02em}button.eKc:hover{border-color:var(--g)}
+.eTwo{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.eRow{display:flex;align-items:center;gap:12px;justify-content:space-between;padding:10px 0;border-top:1px solid var(--line);font-size:15px}.eRow:first-of-type{border-top:0}
+.eTblW{border:1px solid var(--line);border-radius:12px;overflow:auto;max-height:calc(100vh - 290px);background:var(--card)}
+.eGrid{width:100%;border-collapse:separate;border-spacing:0;font-size:14.5px}
+.eGrid th{position:sticky;top:0;z-index:1;background:var(--sub);text-align:left;font-weight:600;font-size:13px;color:var(--mut);padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap;cursor:pointer;user-select:none}
+.eGrid td{padding:9px 12px;border-bottom:1px solid var(--line);max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle}
+.eGrid tbody tr{cursor:pointer}.eGrid tbody tr:hover td{background:var(--sub)}.eGrid tbody tr:last-child td{border-bottom:0}
+.eGrid input[type=checkbox]{width:17px;height:17px;accent-color:var(--g)}.eAct{text-align:right;width:1%}
+.ePill{display:inline-block;padding:2px 9px;border-radius:99px;font-size:12.5px;font-weight:600;background:var(--sub);color:var(--mut)}
+.ePill.s-approved{background:var(--glow);color:var(--g)}.ePill.s-pending{background:rgba(234,179,8,.16);color:#ca8a04}.ePill.s-rejected{background:rgba(239,68,68,.14);color:var(--r)}
+.eTg{width:36px;height:21px;border-radius:99px;background:var(--line);border:0;position:relative;cursor:pointer;padding:0}.eTg:after{content:"";position:absolute;top:3px;left:3px;width:15px;height:15px;border-radius:50%;background:var(--fg);transition:transform .2s}.eTg.on{background:var(--g)}.eTg.on:after{transform:translateX(15px);background:#fff}
+.eBk{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 12px;border:1px solid var(--g);background:var(--glow);border-radius:12px;margin-bottom:12px}
+.ePg{display:flex;gap:12px;align-items:center;justify-content:center;margin-top:14px;flex-wrap:wrap}
+.eCb{display:flex!important;flex-direction:row!important;align-items:center;gap:10px;font-weight:500}.eCb input{width:20px;height:20px;accent-color:var(--g)}
+.eTa{height:auto!important;padding:12px 14px;line-height:1.5;resize:vertical}.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px}
+@media(max-width:860px){.eBody{flex-direction:column}.eSide{width:auto;border-right:0;border-bottom:1px solid var(--line);display:flex;overflow-x:auto;padding:8px;gap:4px;flex:none}.eSide a{white-space:nowrap;flex:none}.eSide .gl{display:none}.eMain{padding:16px 14px 80px}.eTwo{grid-template-columns:1fr}
+ .eTblW{border:0;background:none;max-height:none;overflow:visible}.eGrid thead{display:none}.eGrid,.eGrid tbody,.eGrid tr,.eGrid td{display:block}.eGrid tr{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:10px 12px;margin-bottom:10px;position:relative}.eGrid td{border:0;padding:3px 0;max-width:none;white-space:normal}.eGrid td[data-l]:before{content:attr(data-l) ": ";color:var(--mut)}.eGrid td:first-child{position:absolute;right:10px;top:10px}.eAct{text-align:left;width:auto;padding-top:8px!important}.eGrid tbody tr:hover td{background:none}}
+/* ---- Project Helper page ---- */
+.pjTop{display:flex;align-items:center;gap:10px;min-height:56px;padding:8px 16px;border-bottom:1px solid var(--line);flex:none;flex-wrap:wrap}.pjTop b{font:700 19px var(--d);letter-spacing:-.02em}.pjStat{flex:1;min-width:140px}.pjAct{display:flex;gap:8px;flex-wrap:wrap}.pjAct .btn{height:38px;padding:0 14px}
+.pjBarW{height:3px;background:var(--sub);flex:none}.pjBarW i{display:block;height:100%;background:var(--g);transition:width .4s}
+.pjMain{flex:1;overflow:auto;min-height:0}
+.pjSetup{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:48px;max-width:1080px;margin:0 auto;padding:48px 24px 90px}
+.pjSetup h1{font:800 clamp(36px,5.4vw,56px)/1 var(--d);letter-spacing:-.04em;margin-bottom:14px}
+.pjLead{font-size:17px;line-height:1.55;color:var(--mut);max-width:560px;margin-bottom:26px}
+.pjCard{border:1px solid var(--line);background:var(--card);border-radius:18px;padding:22px;display:grid;gap:18px}
+.pjLb{font-size:14px;font-weight:500;margin-bottom:8px}
+.pjGrp{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:8px}
+.pjOpt{border:1px solid var(--line);background:var(--sub);border-radius:12px;padding:11px 12px;text-align:left;cursor:pointer;color:var(--fg);font:600 15px var(--b);min-height:46px}.pjOpt small{display:block;color:var(--mut);font-weight:400;font-size:12.5px;margin-top:2px}.pjOpt.on{border-color:var(--g);background:var(--glow)}
+.pjSide{padding:0 0 26px;margin-bottom:26px;border-bottom:1px solid var(--line)}.pjSide:last-child{border-bottom:0}.pjSide h3{font:700 19px var(--d);letter-spacing:-.02em;margin-bottom:8px}.pjSide p{color:var(--mut);line-height:1.55;margin-bottom:8px}
+.pjPr{display:flex;align-items:center;gap:8px;padding:10px 0;border-top:1px solid var(--line)}.pjPt{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pjWork{display:grid;grid-template-columns:210px minmax(0,1fr);gap:28px;max-width:1120px;margin:0 auto;padding:0 20px 90px}
+.pjRail{position:sticky;top:0;align-self:start;padding:22px 0;display:flex;flex-direction:column;gap:2px}
+.pjRi{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;color:var(--mut);cursor:pointer;font-size:14.5px}.pjRi:hover{background:var(--sub);color:var(--fg)}.pjRi.run,.pjRi.done{color:var(--fg)}
+.pjD{width:10px;height:10px;border-radius:50%;border:2px solid var(--line);flex:none}.pjD.done{background:var(--g);border-color:var(--g)}.pjD.run{border-color:var(--g);background:var(--glow)}.pjD.err{border-color:var(--r);background:var(--r)}
+.pjCol{padding-top:22px;min-width:0}
+.pjPaper{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:46px 54px;font:17px/1.8 Georgia,"Times New Roman",serif}
+.pjS{padding-bottom:30px;margin-bottom:30px;border-bottom:1px solid var(--line)}.pjS:last-of-type{border-bottom:0;margin-bottom:10px}
+.pjSh{display:flex;align-items:center;gap:10px;margin-bottom:14px;font:600 13px var(--b);color:var(--mut)}.pjSt{margin-left:auto;display:flex;gap:6px;align-items:center}
+.pjT{background:none;border:1px solid var(--line);color:var(--fg);border-radius:8px;height:30px;padding:0 10px;font:500 13px var(--b);cursor:pointer}.pjT:hover{border-color:var(--g)}
+.pjB h2{font:700 29px/1.15 var(--d);letter-spacing:-.025em;margin:0 0 16px}.pjB h3{font:700 20px/1.2 var(--d);margin:24px 0 8px}.pjB h4,.pjB h5{font:700 17px var(--d);margin:18px 0 6px}.pjB p{margin:0 0 15px}.pjB ul{list-style:disc;padding-left:24px;margin:0 0 15px}.pjB ol{list-style:decimal;padding-left:24px;margin:0 0 15px}
+.pjt{border-collapse:collapse;margin:12px 0;font:14.5px var(--b)}.pjt td,.pjt th{border:1px solid var(--line);padding:7px 11px;text-align:left}.pjt th{background:var(--sub)}
+.pjTa{height:300px!important;padding:14px 16px;line-height:1.6;font:15px/1.6 Georgia,serif;resize:vertical}
+.pjSk i{display:block;height:13px;border-radius:7px;background:var(--sub);margin:12px 0;width:100%}.pjSk.run i{animation:pjSh 1.4s ease-in-out infinite}.pjSk.run i:nth-child(2){animation-delay:.15s}.pjSk.run i:nth-child(3){animation-delay:.3s}
+@keyframes pjSh{50%{opacity:.45}}@keyframes pjSpin{to{transform:rotate(360deg)}}
+.pjSp{width:15px;height:15px;border:2px solid var(--line);border-top-color:var(--g);border-radius:50%;animation:pjSpin .8s linear infinite}
+.pjErr{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;border:1px solid var(--r);border-radius:12px;padding:12px 14px;margin-bottom:16px;color:var(--r)}
+@media(max-width:860px){.pjSetup{grid-template-columns:1fr;gap:30px;padding:30px 18px 80px}.pjWork{grid-template-columns:1fr;gap:0;padding:0 14px 80px}.pjRail{position:sticky;top:0;z-index:2;flex-direction:row;overflow-x:auto;background:var(--bg);padding:10px 0;gap:6px}.pjRi{white-space:nowrap;flex:none;border:1px solid var(--line)}.pjPaper{padding:24px 20px;font-size:16.5px}.pjCol{padding-top:8px}.pjGrp{grid-auto-flow:row}.pjTop .pjStat{flex:1 1 100%;order:3}}
+.eAct{position:sticky;right:0;background:var(--card)}.eGrid th:last-child{position:sticky;right:0;z-index:2}.eGrid tbody tr:hover td.eAct{background:var(--sub)}
+#md .form .inp:disabled{opacity:.55;cursor:not-allowed}
+.pjCard label{display:grid;gap:8px;font-size:14px;font-weight:500}.pjCard .inp{width:100%}
+@media(max-width:860px){.eAct{position:static}.eGrid th:last-child{position:static}}
+@media(max-width:860px){.eTop .note{display:none}.eTop .btn{white-space:nowrap;margin-left:auto}}
 </style></head>
 <body>
 <header><div class="w hd">
@@ -280,6 +346,8 @@ footer{border-top:1px solid var(--line);padding:48px 0 calc(48px + env(safe-area
 
 <div id="ex" role="dialog" aria-label="CBT practice"></div>
 <div id="adm" aria-label="Admin"></div>
+<div id="erp" aria-label="Admin console"></div>
+<div id="pjp" aria-label="Project Helper"></div>
 <div id="bk"><div id="md" role="dialog"></div></div>
 <div id="exd" class="dlgb"></div><div id="calc"></div>
 <div id="toast" role="status"></div>
@@ -606,7 +674,7 @@ function openAdmin(){if(!isAdmin())return;$("#adm").classList.add("show");docume
 function closeAdmin(){$("#adm").classList.remove("show");document.body.style.overflow=""}
 function bkCourses(){const el=$("#bkCrs");if(!el)return;el.innerHTML=$("#bkLvl").value==="0"?'<option value="">General / All (no specific course)</option>':C.filter(c=>c[2]==$("#bkLvl").value).map(c=>`<option value="${esc(c[4])}">${esc(c[0])} · ${esc(c[1])}</option>`).join("")}
 function radm(){const dl=S.res.reduce((s,r)=>s+(r.downloads||0),0);
- $("#adm").innerHTML=`<div class="eh"><div class="w"><b style="font-family:var(--d);font-size:20px">Admin</b><button class="btn s" id="admX" style="margin-left:auto;height:40px">Close</button></div></div><div class="w" style="padding-top:28px;padding-bottom:70px">
+ $("#adm").innerHTML=`<div class="eh"><div class="w"><b style="font-family:var(--d);font-size:20px">Admin</b><button class="btn p" id="admErp" style="margin-left:auto;height:40px">Console</button><button class="btn s" id="admX" style="height:40px;margin-left:8px">Close</button></div></div><div class="w" style="padding-top:28px;padding-bottom:70px">
  <p class="mut">Review what students upload. Approved items appear in the library for everyone.</p>
  <div class="fg" style="margin-top:22px">${[["Waiting",S.pending.length],["Published",S.res.length],["Downloads",dl.toLocaleString()]].map(([a,b])=>`<div class="card" style="padding:18px"><div class="note">${a}</div><div style="font:700 30px var(--d);margin-top:4px">${b}</div></div>`).join("")}</div>
  <h3 style="font-size:22px;margin:40px 0 6px">Upload materials</h3><p class="note">Add many files at once. Everything uploaded here goes live straight away.</p>
@@ -627,7 +695,7 @@ function radm(){const dl=S.res.reduce((s,r)=>s+(r.downloads||0),0);
  <div class="ag" style="grid-template-columns:1fr 1fr;align-items:center"><select class="inp" id="mfDest"></select><input class="inp" id="mfPaper" placeholder="Paper or subject (optional)" style="display:none" maxlength="120"></div>
  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:space-between"><label style="display:flex;gap:8px;align-items:center;font-weight:500"><input type="checkbox" id="mfAll" style="width:18px;height:18px"> Select all shown</label><span class="note" id="mfSel">None selected</span><button class="btn p" id="mfMove" style="height:38px" disabled>Move selected</button></div>
  <div id="mfList" style="display:grid;gap:8px;max-height:520px;overflow:auto"></div></div></div>`;
- $("#admX").onclick=closeAdmin;$("#qbGo").onclick=qbImport;$("#nmGo").onclick=async()=>{const title=$("#nmTitle").value.trim(),u=$("#nmUrl").value.trim();if(!title)return toast("Give the notebook a title.");if(!/^https:\/\/notebooklm\.google(\.com)?\//i.test(u))return toast("Paste a NotebookLM share link. It starts with https://notebooklm.google.com");const {error}=await sb.from("notebooks").insert({course_id:$("#nmCrs").value||null,title,description:$("#nmDesc").value.trim()||null,notebook_url:u,created_by:S.user.id});if(error)return toast(error.message);toast("Notebook added.");await load();radm()};bkCourses();$("#bkLvl").onchange=bkCourses;
+ $("#admX").onclick=closeAdmin;$("#admErp").onclick=()=>{closeAdmin();erpOpen()};$("#qbGo").onclick=qbImport;$("#nmGo").onclick=async()=>{const title=$("#nmTitle").value.trim(),u=$("#nmUrl").value.trim();if(!title)return toast("Give the notebook a title.");if(!/^https:\/\/notebooklm\.google(\.com)?\//i.test(u))return toast("Paste a NotebookLM share link. It starts with https://notebooklm.google.com");const {error}=await sb.from("notebooks").insert({course_id:$("#nmCrs").value||null,title,description:$("#nmDesc").value.trim()||null,notebook_url:u,created_by:S.user.id});if(error)return toast(error.message);toast("Notebook added.");await load();radm()};bkCourses();$("#bkLvl").onchange=bkCourses;
  const dz=$("#drop");["dragenter","dragover"].forEach(v=>dz.addEventListener(v,e=>{e.preventDefault();dz.classList.add("drag")}));["dragleave","drop"].forEach(v=>dz.addEventListener(v,e=>{e.preventDefault();dz.classList.remove("drag")}));
  dz.addEventListener("drop",e=>bkAdd(e.dataTransfer.files));$("#bkFile").onchange=e=>{bkAdd(e.target.files);e.target.value=""};
  $("#bkList").addEventListener("input",e=>{const i=e.target.dataset.bt;if(i!==undefined)bulk[+i].title=e.target.value});
@@ -681,11 +749,13 @@ sb&&(sb.auth.getSession().then(({data})=>onUser(data.session?.user||null)),sb.au
 
 
 
-/* ---------- Project Helper (AI draft generator) ---------- */
+/* ---------- Project Helper page ---------- */
 const PJS=[["title","Title page"],["c1","Chapter 1: Introduction"],["c2","Chapter 2: Literature Review"],["c3","Chapter 3: Methodology"],["c4","Chapter 4: Findings and Discussion"],["c5","Chapter 5: Conclusion"],["refs","References"],["abs","Abstract"]],
-PJO=["title","abs","c1","c2","c3","c4","c5","refs"],
-PJN="Academic integrity note: this is an AI-generated draft to support your own research and writing. Review and fact-check every claim, confirm that every reference really exists, replace the illustrative data with your own findings, rewrite it in your own voice, and follow your department's and supervisor's rules before submitting anything.";
-let PJ={parts:{},done:{},form:{topic:"",level:"Undergraduate / Bachelor's",field:"Accounting",words:4000,cite:"APA 7th edition"},run:false,ctl:null,err:"",cur:""};
+PJO=["title","abs","c1","c2","c3","c4","c5","refs"],PJL=Object.fromEntries(PJS),
+PJSH={title:"Title page",abs:"Abstract",c1:"Introduction",c2:"Literature review",c3:"Methodology",c4:"Findings",c5:"Conclusion",refs:"References"},
+PJN="Academic integrity note: this is an AI-generated draft to support your own research and writing. Review and fact-check every claim, confirm that every reference really exists, replace the illustrative data with your own findings, rewrite it in your own voice, and follow your department's and supervisor's rules before submitting anything.",
+PJK="nuasaProjects";
+let PJ={id:null,form:{topic:"",level:"Undergraduate / Bachelor's",field:"Accounting",words:4000,cite:"APA 7th edition"},parts:{},done:{},bak:{},run:false,ctl:null,err:"",cur:"",fail:null,edit:null,view:"setup"};
 const mdx=t=>{const L=esc(t).split("\n");let o="",ul=0,ol=0,tb=[];
  const inl=s=>s.replace(/\*\*(.+?)\*\*/g,"<b>$1</b>").replace(/(^|[^*])\*([^*\n]+)\*/g,"$1<i>$2</i>"),
  cl=()=>{if(ul){o+="</ul>";ul=0}if(ol){o+="</ol>";ol=0}},
@@ -697,55 +767,84 @@ const mdx=t=>{const L=esc(t).split("\n");let o="",ul=0,ol=0,tb=[];
   else if(m=l.match(/^\s*\d+[.)]\s+(.*)/)){if(!ol){cl();o+="<ol>";ol=1}o+="<li>"+inl(m[1])+"</li>"}
   else if(!l.trim())cl();else{cl();o+="<p>"+inl(l)+"</p>"}}
  cl();ft();return o};
-const pjAll=()=>PJO.filter(k=>PJ.parts[k]),pjFin=()=>PJS.every(x=>PJ.done[x[0]]);
+const pjList=()=>{try{return JSON.parse(localStorage.getItem(PJK)||"[]")}catch(e){return []}},
+ pjAllDone=()=>PJS.every(x=>PJ.done[x[0]]),pjCount=()=>PJS.filter(x=>PJ.done[x[0]]).length,
+ pjWait=ms=>new Promise(r=>setTimeout(r,ms));
+function pjSave(){if(!PJ.id)return;const parts=Object.fromEntries(Object.entries(PJ.parts).filter(([k])=>PJ.done[k]));if(!Object.keys(parts).length)return;
+ const l=pjList().filter(p=>p.id!==PJ.id);l.unshift({id:PJ.id,form:PJ.form,parts,done:{...PJ.done},t:Date.now()});
+ try{localStorage.setItem(PJK,JSON.stringify(l.slice(0,6)))}catch(e){toast("Could not save on this device: storage is full.")}}
+function pjTitleOf(p){const t=(p.parts&&p.parts.title||"").split("\n").map(x=>x.replace(/[#*_]/g,"").trim()).find(Boolean);return t||p.form.topic}
 function pjPrior(id){const s=PJO.filter(k=>k!==id&&k!=="abs"&&PJ.done[k]).map(k=>PJ.parts[k]).join("\n\n"),cap=(id==="refs"||id==="abs")?14000:9000;return s.length>cap?s.slice(0,Math.floor(cap*.35))+"\n[...]\n"+s.slice(-Math.floor(cap*.65)):s}
-let pjRaf=0;
-function pjPaint(){if(pjRaf)return;pjRaf=requestAnimationFrame(()=>{pjRaf=0;const o=$("#pjOut");if(!o)return;const atEnd=o.scrollTop+o.clientHeight>=o.scrollHeight-40;o.innerHTML=pjAll().map(k=>'<div>'+mdx(PJ.parts[k])+'</div>').join("<hr>")+(pjFin()?`<hr><p class="note">${esc(PJN)}</p>`:"");if(atEnd&&PJ.run)o.scrollTop=o.scrollHeight;
- const n=PJS.filter(x=>PJ.done[x[0]]).length,b=$("#pjBar");if(b)b.style.width=(n/PJS.length*100)+"%"})}
-function pjUI(){const started=Object.keys(PJ.parts).length>0,f=PJ.form,n=PJS.filter(x=>PJ.done[x[0]]).length;
- const opt=(a,v)=>a.map(x=>`<option ${x==v?"selected":""}>${x}</option>`).join("");
- $("#md").innerHTML=mh("Project Helper","Generates a full draft (title page, 5 chapters, references and abstract) to build your own project on.")+(started?`
- <div style="margin-top:16px;display:grid;gap:12px">
-  <div class="pjbar"><i id="pjBar" style="width:${n/PJS.length*100}%"></i></div>
-  <div class="note">${PJ.run?"Writing: "+esc(PJ.cur)+" ("+n+" of "+PJS.length+" done). You can close this window and it keeps going.":pjFin()?"Draft complete.":PJ.err?"":"Paused."}</div>
-  ${PJ.err&&!PJ.run?`<p class="note" style="color:var(--r)">${esc(PJ.err)}</p>`:""}
-  <div class="pjo" id="pjOut"></div>
-  <div style="display:flex;gap:10px;flex-wrap:wrap">${PJ.run?'<button class="btn s" id="pjStop">Stop</button>':(pjFin()?"":'<button class="btn p" id="pjGo">Continue</button>')}<button class="btn s" id="pjCopy">Copy text</button><button class="btn p" id="pjDoc">Download Word file</button>${PJ.run?"":'<button class="btn s" id="pjNew">New project</button>'}</div>
-  <p class="note">${esc(PJN)}</p></div>`:`
- <div class="form" style="border:0;padding:18px 0 0;background:none">
-  <label>Project topic<textarea class="inp" id="pjT" rows="3" maxlength="300" placeholder="e.g. Effect of tax compliance costs on the profitability of SMEs in Akwa Ibom State" style="height:auto;padding:12px 14px;resize:vertical">${esc(f.topic)}</textarea></label>
-  <label>Academic level<select class="inp" id="pjL">${opt(["High School","Undergraduate / Bachelor's","Master's"],f.level)}</select></label>
-  <label>Field of study<input class="inp" id="pjF" maxlength="100" value="${esc(f.field)}"></label>
-  <label>Length<select class="inp" id="pjW">${[[2500,"About 2,500 words (short)"],[4000,"About 4,000 words"],[6000,"About 6,000 words (long)"]].map(x=>`<option value="${x[0]}" ${x[0]==f.words?"selected":""}>${x[1]}</option>`).join("")}</select></label>
-  <label>Citation style<select class="inp" id="pjC">${opt(["APA 7th edition","Harvard","MLA","Chicago","IEEE"],f.cite)}</select></label>
-  <p class="note">Takes a few minutes. The result is a starting draft: check every fact and reference, add your own data, and write it up in your own words. Each student can make one draft a day, and it can fill up on busy days. Don't type personal details in the topic.</p>
-  <p class="note" id="pjE" style="color:var(--r)">${esc(PJ.err||"")}</p><button class="btn p" id="pjGo">Generate draft</button></div>`);
- pjBind();pjPaint()}
-function pjBind(){const g=id=>document.getElementById(id);
- if(g("pjGo"))g("pjGo").onclick=()=>{if(!PJ.run&&!Object.keys(PJ.parts).length){const t=g("pjT").value.trim();if(t.length<8){g("pjE").textContent="Describe your topic in a sentence.";return}
-  PJ.form={topic:t,level:g("pjL").value,field:g("pjF").value.trim()||"General",words:+g("pjW").value,cite:g("pjC").value}}pjRun()};
- if(g("pjStop"))g("pjStop").onclick=()=>PJ.ctl&&PJ.ctl.abort();
- if(g("pjNew"))g("pjNew").onclick=()=>{if(confirm("Start a new project? The current draft will be cleared.")){PJ.parts={};PJ.done={};PJ.err="";pjUI()}};
- if(g("pjCopy"))g("pjCopy").onclick=()=>{const t=pjAll().map(k=>PJ.parts[k]).join("\n\n")+"\n\n"+PJN;(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast("Copied."),()=>toast("Could not copy. Use the Word download instead."))};
- if(g("pjDoc"))g("pjDoc").onclick=()=>{const body=pjAll().map(k=>mdx(PJ.parts[k])).join('<div style="page-break-before:always"></div>')+"<p><i>"+esc(PJN)+"</i></p>",
-  h='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><style>body{font:12pt "Times New Roman";line-height:1.5}table{border-collapse:collapse}td,th{border:1px solid #000;padding:4px}</style></head><body>'+body+"</body></html>",
-  a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["\ufeff"+h],{type:"application/msword"}));a.download="project-draft.doc";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),5e3)}}
-async function pjRun(){if(PJ.run)return;PJ.run=true;PJ.err="";
- const {data:{session}}=await sb.auth.getSession();if(!session){PJ.run=false;closeModal();toast("Please sign in again.");return openAuth("in")}
- for(const [id,label] of PJS){if(PJ.done[id])continue;PJ.cur=label;PJ.parts[id]="";PJ.ctl=new AbortController();pjUI();
-  try{const r=await fetch("/api/project",{method:"POST",signal:PJ.ctl.signal,headers:{"content-type":"application/json",authorization:"Bearer "+session.access_token},body:JSON.stringify({section:id,form:PJ.form,prior:pjPrior(id),first:!Object.keys(PJ.done).length})});
-   if(!r.ok){let m="";try{m=(await r.json()).error}catch(e){}if(!m&&r.status===404)m="The Project Helper is not installed on the server yet (the api folder is missing from GitHub).";throw new Error(m||"The assistant is unavailable right now (error "+r.status+"). Please try again shortly.")}
-   const rd=r.body.getReader(),dc=new TextDecoder();let acc="";
-   for(;;){const {done,value}=await rd.read();if(done)break;acc+=dc.decode(value,{stream:true});PJ.parts[id]=acc.replace(/\[\[ERROR\]\]\s*$/,"");pjPaint()}
-   if(/\[\[ERROR\]\]\s*$/.test(acc))throw new Error("The connection was interrupted. Tap Continue to retry this part.");
-   if(acc.trim().length<20)throw new Error("The assistant returned nothing. Tap Continue to retry.");
-   PJ.done[id]=1}
-  catch(e){delete PJ.parts[id];PJ.run=false;PJ.err=e.name==="AbortError"?"Stopped. Tap Continue to resume.":(e.message||"Something went wrong.");if($("#pjOut")||$("#bk").classList.contains("show"))pjUI();return}
-  await new Promise(r=>setTimeout(r,6500))}
- PJ.run=false;PJ.cur="";if($("#pjOut"))pjUI();else toast("Your project draft is ready. Open Project Helper to view it.")}
-function openProject(){if(!sb)return toast("Library service is not reachable.");if(!S.user){toast("Sign in to use the Project Helper.");return openAuth("in")}
- openModal("",true);pjUI()}
-$("#dPj").onclick=e=>{e.preventDefault();if(typeof od==="function")od(false);openProject()};
+
+function pjOpen(){if(!sb)return toast("Library service is not reachable.");if(!S.user){toast("Sign in to use the Project Helper.");return openAuth("in")}
+ $("#pjp").classList.add("show");document.body.style.overflow="hidden";PJ.view=Object.keys(PJ.parts).length?"work":"setup";pjRender()}
+function pjClose(){$("#pjp").classList.remove("show");if(!$("#erp").classList.contains("show")&&!$("#adm").classList.contains("show"))document.body.style.overflow=""}
+function pjStatText(){if(PJ.run)return"Writing "+(PJSH[PJ.cur]||"")+", "+pjCount()+" of "+PJS.length+" done";if(pjAllDone())return"Draft complete and saved on this device";return PJ.err?"":"Paused, "+pjCount()+" of "+PJS.length+" done"}
+function pjStat(){const s=$("#pjStat");if(s)s.textContent=pjStatText();const b=$("#pjBar");if(b)b.style.width=(pjCount()/PJS.length*100)+"%"}
+function pjSt(id){return PJ.done[id]?"done":(PJ.run&&PJ.cur===id?"run":(PJ.fail===id?"err":"wait"))}
+function pjSecHTML(id){const st=pjSt(id),has=!!PJ.parts[id],ed=PJ.edit===id;
+ const tools=PJ.done[id]&&!ed?`<button class="pjT" data-re="${id}">Regenerate</button><button class="pjT" data-ed="${id}">Edit</button>`:(st==="run"?'<span class="pjSp" role="status" aria-label="Writing"></span>':"");
+ const body=ed?`<textarea class="inp pjTa" id="pjTa" spellcheck="true">${esc(PJ.parts[id]||"")}</textarea><div style="display:flex;gap:8px;margin-top:10px"><button class="btn p" data-sv="${id}" style="height:40px">Save</button><button class="btn s" data-cn style="height:40px">Cancel</button></div>`
+  :has?`<div class="pjB" id="pjb-${id}">${mdx(PJ.parts[id])}</div>`:`<div class="pjSk ${st==="run"?"run":""}"><i></i><i style="width:92%"></i><i style="width:97%"></i><i style="width:60%"></i></div>`;
+ return `<section class="pjS" id="pjs-${id}"><div class="pjSh"><span class="pjD ${st}"></span>${esc(PJL[id])}<span class="pjSt">${tools}</span></div>${body}</section>`}
+function pjSec(id){const el=document.getElementById("pjs-"+id);if(el)el.outerHTML=pjSecHTML(id);const r=document.querySelector(`[data-go="${id}"]`);if(r){r.className="pjRi "+pjSt(id);const d=r.querySelector(".pjD");if(d)d.className="pjD "+pjSt(id)}pjStat()}
+let pjRaf={};function pjPaint(id){if(pjRaf[id])return;pjRaf[id]=requestAnimationFrame(()=>{pjRaf[id]=0;const b=document.getElementById("pjb-"+id);if(b)b.innerHTML=mdx(PJ.parts[id]||"");else pjSec(id)})}
+
+function pjRender(){const p=$("#pjp"),keep=p.querySelector(".pjMain"),sy=keep?keep.scrollTop:0;
+ const work=PJ.view==="work",top=`<div class="pjTop"><button class="ib" id="pjBack" aria-label="Close">←</button><b>Project Helper</b><span class="note pjStat" id="pjStat">${work?esc(pjStatText()):""}</span>${work?`<span class="pjAct">${PJ.run?'<button class="btn s" id="pjStop">Stop</button>':(!pjAllDone()&&Object.keys(PJ.parts).length?'<button class="btn p" id="pjCont">Continue</button>':"")}<button class="btn s" id="pjCopy">Copy</button><button class="btn p" id="pjDoc">Word file</button>${PJ.run?"":'<button class="btn s" id="pjNew">New</button>'}</span>`:""}</div>${work?'<div class="pjBarW"><i id="pjBar" style="width:'+(pjCount()/PJS.length*100)+'%"></i></div>':""}`;
+ p.innerHTML=top+`<div class="pjMain">${work?pjWork():pjSetup()}</div>`;const m=p.querySelector(".pjMain");if(m)m.scrollTop=sy}
+function pjSetup(){const f=PJ.form,l=pjList(),opt=(a,v)=>a.map(x=>`<option ${x==v?"selected":""}>${x}</option>`).join("");
+ return `<div class="pjSetup"><div><h1>Start with your topic.</h1><p class="pjLead">Get a complete starting draft: title page, five chapters, references and an abstract. Then edit any section, regenerate the ones you don't like, and download it as a Word file.</p>
+ <div class="pjCard"><label>Project topic<textarea class="inp" id="pjT" rows="3" maxlength="300" placeholder="e.g. Effect of tax compliance costs on the profitability of SMEs in Akwa Ibom State" style="height:auto;padding:12px 14px;resize:vertical">${esc(f.topic)}</textarea></label>
+ <div><div class="pjLb">Academic level</div><div class="pjGrp" id="pjLv">${[["High School","High school"],["Undergraduate / Bachelor's","Bachelor's"],["Master's","Master's"]].map(([v,t])=>`<button class="pjOpt ${f.level===v?"on":""}" data-lv="${esc(v)}">${t}</button>`).join("")}</div></div>
+ <label>Field of study<input class="inp" id="pjF" maxlength="100" value="${esc(f.field)}"></label>
+ <div><div class="pjLb">Length</div><div class="pjGrp" id="pjWd">${[[2500,"Short","about 2,500 words"],[4000,"Standard","about 4,000 words"],[6000,"Long","about 6,000 words"]].map(([v,t,d])=>`<button class="pjOpt ${f.words===v?"on":""}" data-wd="${v}">${t}<small>${d}</small></button>`).join("")}</div></div>
+ <label>Citation style<select class="inp" id="pjC">${opt(["APA 7th edition","Harvard","MLA","Chicago","IEEE"],f.cite)}</select></label>
+ <p class="note" id="pjE" style="color:var(--r)">${esc(PJ.err||"")}</p><button class="btn p" id="pjGo" style="height:52px;font-size:17px">Generate draft</button>
+ <p class="note">Each section you generate or regenerate uses part of your daily allowance. Don't type personal details in the topic.</p></div></div>
+ <aside><div class="pjSide"><h3>How it works</h3><p>It writes section by section, so you can watch the draft come together and stop at any time.</p><p>Every section can be edited by hand or regenerated on its own.</p><p>Your drafts are saved on this device, so you can close this page and come back.</p></div>
+ <div class="pjSide"><h3>A draft is a starting point</h3><p>Check every fact and reference, replace the sample data with your own findings, and write it up in your own words before you submit anything.</p></div>
+ ${l.length?`<div class="pjSide"><h3>Your projects</h3>${l.map(p=>`<div class="pjPr"><div style="min-width:0;flex:1"><div class="pjPt">${esc(pjTitleOf(p))}</div><div class="note">${Object.keys(p.done||{}).length} of ${PJS.length} sections, ${new Date(p.t).toLocaleDateString(undefined,{day:"numeric",month:"short"})}</div></div><button class="btn s" style="height:36px" data-open="${esc(p.id)}">Open</button><button class="btn s dng" style="height:36px" data-delp="${esc(p.id)}" aria-label="Delete project">Delete</button></div>`).join("")}</div>`:""}</aside></div>`}
+function pjWork(){return `<div class="pjWork"><nav class="pjRail" aria-label="Sections">${PJO.map(id=>`<a class="pjRi ${pjSt(id)}" data-go="${id}"><span class="pjD ${pjSt(id)}"></span>${PJSH[id]}</a>`).join("")}</nav>
+ <div class="pjCol">${PJ.err&&!PJ.run?`<div class="pjErr"><span>${esc(PJ.err)}</span><button class="btn s" id="pjRetry" style="height:38px">Try again</button></div>`:""}<article class="pjPaper">${PJO.map(pjSecHTML).join("")}${pjAllDone()?`<p class="note" style="font-family:var(--b)">${esc(PJN)}</p>`:""}</article></div></div>`}
+
+async function pjTok(){const {data:{session}}=await sb.auth.getSession();if(!session){PJ.run=false;pjClose();toast("Please sign in again.");openAuth("in");return null}return session.access_token}
+async function pjGen(id,tok){const had=!!PJ.done[id],old=PJ.parts[id];PJ.cur=id;PJ.fail=null;PJ.err="";PJ.done[id]=0;PJ.parts[id]="";PJ.edit=null;pjSec(id);PJ.ctl=new AbortController();
+ const el=document.getElementById("pjs-"+id);if(el&&el.scrollIntoView)el.scrollIntoView({behavior:"smooth",block:"start"});
+ try{const r=await fetch("/api/project",{method:"POST",signal:PJ.ctl.signal,headers:{"content-type":"application/json",authorization:"Bearer "+tok},body:JSON.stringify({section:id,form:PJ.form,prior:pjPrior(id)})});
+  if(!r.ok){let m="";try{m=(await r.json()).error}catch(e){}if(!m&&r.status===404)m="The Project Helper is not installed on the server yet (the api folder is missing from GitHub).";throw new Error(m||"The assistant is unavailable right now (error "+r.status+"). Please try again shortly.")}
+  const rd=r.body.getReader(),dc=new TextDecoder();let acc="";
+  for(;;){const {done,value}=await rd.read();if(done)break;acc+=dc.decode(value,{stream:true});PJ.parts[id]=acc.replace(/\[\[ERROR\]\]\s*$/,"");pjPaint(id)}
+  if(/\[\[ERROR\]\]\s*$/.test(acc))throw new Error("The connection was interrupted. Tap Try again to continue.");
+  if(acc.trim().length<20)throw new Error("The assistant returned nothing. Tap Try again.");
+  PJ.done[id]=1;pjSave();pjSec(id);return true}
+ catch(e){if(had){PJ.parts[id]=old;PJ.done[id]=1}else delete PJ.parts[id];PJ.fail=id;PJ.err=e.name==="AbortError"?"Stopped. Tap Continue to resume.":(e.message||"Something went wrong.");return false}}
+async function pjRun(){if(PJ.run)return;PJ.run=true;PJ.err="";const tok=await pjTok();if(!tok)return;pjRender();
+ for(const [id] of PJS){if(PJ.done[id])continue;if(!await pjGen(id,tok)){PJ.run=false;pjRender();return}await pjWait(6500)}
+ PJ.run=false;PJ.cur="";pjRender();if(!$("#pjp").classList.contains("show"))toast("Your project draft is ready. Open Project Helper to view it.")}
+async function pjRegen(id){if(PJ.run)return toast("Wait for the draft to finish, or tap Stop first.");PJ.run=true;const tok=await pjTok();if(!tok)return;pjStat();const ok=await pjGen(id,tok);PJ.run=false;PJ.cur="";if(!ok)toast(PJ.err);pjRender()}
+function pjDoc(){const body=PJO.filter(k=>PJ.parts[k]).map(k=>mdx(PJ.parts[k])).join('<div style="page-break-before:always"></div>')+"<p><i>"+esc(PJN)+"</i></p>",
+ h='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><style>body{font:12pt "Times New Roman";line-height:1.5}h2{text-align:center;font-size:14pt;text-transform:uppercase}h3{font-size:12pt}table{border-collapse:collapse}td,th{border:1px solid #000;padding:4px}</style></head><body>'+body+"</body></html>",
+ a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["\ufeff"+h],{type:"application/msword"}));a.download="project-draft.doc";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),5e3)}
+$("#pjp").addEventListener("click",e=>{const t=e.target,c=s=>t.closest(s);let b;
+ if(c("#pjBack"))return pjClose();
+ if(c("#pjStop")){PJ.ctl&&PJ.ctl.abort();return}
+ if(c("#pjCont")||c("#pjRetry"))return pjRun();
+ if(c("#pjCopy")){const x=PJO.filter(k=>PJ.parts[k]).map(k=>PJ.parts[k]).join("\n\n")+"\n\n"+PJN;return void(navigator.clipboard?navigator.clipboard.writeText(x).then(()=>toast("Copied."),()=>toast("Could not copy. Use the Word file instead.")):toast("Could not copy. Use the Word file instead."))}
+ if(c("#pjDoc"))return pjDoc();
+ if(c("#pjNew")){if(confirm("Start a new project? This draft stays saved in Your projects.")){PJ.id=null;PJ.parts={};PJ.done={};PJ.err="";PJ.fail=null;PJ.view="setup";pjRender()}return}
+ if(c("#pjGo")){const tp=$("#pjT").value.trim();if(tp.length<8){$("#pjE").textContent="Describe your topic in a sentence.";return}
+  PJ.form={...PJ.form,topic:tp,field:$("#pjF").value.trim()||"General",cite:$("#pjC").value};PJ.id="p"+Date.now();PJ.parts={};PJ.done={};PJ.bak={};PJ.err="";PJ.fail=null;PJ.view="work";pjRun();return}
+ if(b=c("[data-lv]")){PJ.form.level=b.dataset.lv;$$("#pjLv .pjOpt").forEach(x=>x.classList.toggle("on",x===b));return}
+ if(b=c("[data-wd]")){PJ.form.words=+b.dataset.wd;$$("#pjWd .pjOpt").forEach(x=>x.classList.toggle("on",x===b));return}
+ if(b=c("[data-open]")){const p=pjList().find(x=>x.id===b.dataset.open);if(p){PJ.id=p.id;PJ.form=p.form;PJ.parts=p.parts;PJ.done=p.done||{};PJ.err="";PJ.fail=null;PJ.view="work";pjRender()}return}
+ if(b=c("[data-delp]")){if(confirm("Delete this saved project from this device?")){try{localStorage.setItem(PJK,JSON.stringify(pjList().filter(p=>p.id!==b.dataset.delp)))}catch(e){}pjRender()}return}
+ if(b=c("[data-go]")){const el=document.getElementById("pjs-"+b.dataset.go);if(el)el.scrollIntoView({behavior:"smooth",block:"start"});return}
+ if(b=c("[data-re]")){const id=b.dataset.re;if(confirm("Regenerate this section? The current text will be replaced.\nThis uses part of your daily allowance."))pjRegen(id);return}
+ if(b=c("[data-ed]")){PJ.edit=b.dataset.ed;pjSec(PJ.edit);const ta=$("#pjTa");if(ta){ta.style.height=Math.min(ta.scrollHeight+4,560)+"px";ta.focus()}return}
+ if(b=c("[data-sv]")){const id=b.dataset.sv,v=($("#pjTa").value||"").trim();if(v){PJ.parts[id]=v;pjSave()}PJ.edit=null;pjSec(id);return}
+ if(c("[data-cn]")){const id=PJ.edit;PJ.edit=null;if(id)pjSec(id);return}});
+$("#dPj").onclick=e=>{e.preventDefault();if(typeof od==="function")od(false);pjOpen()};
 
 /* ---------- Home feed, file manager, offline files ---------- */
 function rrow(r,sc){const sv=offHas(r.id);return `<div class="rr" style="flex-wrap:wrap;gap:8px"><div style="flex:1;min-width:180px"><div style="font-weight:600">${esc(r.title)}</div><div class="note">${sc?esc(cn(r.course_id)[0]||"General")+" · ":""}${TY[r.type]||"Resource"}${r.session?" · "+esc(r.session):""}${r.file_size?" · "+fs(r.file_size):""} · ${(r.downloads||0).toLocaleString()} downloads${sv?" · Saved offline":""}</div></div>${r.external_url?"":`<button class="btn s" style="height:38px" onclick="pv('${esc(r.id)}')">Preview</button><button class="btn s" style="height:38px" onclick="offToggle('${esc(r.id)}')">${sv?"Remove offline":"Save offline"}</button>`}<button class="btn p" style="height:38px" onclick="get('${esc(r.id)}')">${r.external_url?"Open":"Download"}</button></div>`}
@@ -832,6 +931,136 @@ function menuSpy(){const map=[["top","#top"],["latest","#library"],["library","#
  map.forEach(([id,h])=>{const el=document.getElementById(id);if(!el||el.offsetParent===null)return;const t=el.getBoundingClientRect().top;if(t<=y&&t>bt){bt=t;best=h}});
  dr.querySelectorAll(".mi").forEach(a=>{const on=a.getAttribute("href")===best;a.classList.toggle("cur",on);if(on)a.setAttribute("aria-current","true");else a.removeAttribute("aria-current")})}
 $("#mb").addEventListener("click",menuSpy);menuAcct();menuOff();menuPend();
+/* ---------- Admin Console (edit anything) ---------- */
+const ET=[
+ {k:"resources",g:"Content",l:"Files",one:"file",t:"resources",o:"created_at",c:["title","type","course_id","session","status","downloads","created_at"],s:["title","session"],
+  f:[["All",0],["Pending",q=>q.eq("status","pending")],["Approved",q=>q.eq("status","approved")],["General / All",q=>q.is("course_id",null)]],
+  sel:{status:["pending","approved","rejected"],type:Object.keys(TY)},bulk:[["Approve",{status:"approved"}],["Mark pending",{status:"pending"}]]},
+ {k:"courses",g:"Content",l:"Courses",one:"course",t:"courses",o:"code",asc:1,c:["code","title","level","semester","units"],s:["code","title"],sel:{level:[100,200,300,400],semester:[1,2]}},
+ {k:"prep_classes",g:"Content",l:"ICAN and ATS classes",one:"class",t:"prep_classes",o:"created_at",c:["exam","level","paper","title","video_url","material_name"],s:["title","paper","exam","level"],sel:{exam:Object.keys(LVLS)}},
+ {k:"notebooks",g:"Content",l:"Notebooks",one:"notebook",t:"notebooks",o:"created_at"},
+ {k:"opportunities",g:"Content",l:"Opportunities",one:"opportunity",t:"opportunities",o:"created_at"},
+ {k:"cbt_questions",g:"Content",l:"CBT questions",one:"question",t:"cbt_questions",o:"created_at"},
+ {k:"profiles",g:"People",l:"Users",one:"user",t:"profiles",o:"created_at",users:1}];
+const E={cur:"home",st:{},tmp:[],counts:{}};
+const eRO=k=>/^(id|created_at|updated_at|created_by|uploaded_by|user_id)$/.test(k),
+ eLb=k=>{const s=k.replace(/_id$/,"").replace(/_/g," ");return s[0].toUpperCase()+s.slice(1)},
+ eCfg=k=>ET.concat(E.tmp).find(x=>x.k===k),
+ eSt=k=>E.st[k]||(E.st[k]={page:0,size:25,q:"",f:0,o:eCfg(k).o,asc:!!eCfg(k).asc,rows:[],n:0,sel:new Set(),err:"",loading:false,sample:null}),
+ eNums=/^(downloads|units|level|semester|file_size|position|sort|order|year|score|marks?|duration|price|amount)$/i,
+ eBools=/^(is_|has_)|^(featured|published|active|verified|approved|pinned)$/i;
+function eType(k,v,cfg){if(cfg.sel&&cfg.sel[k])return"sel";if(k==="course_id")return"course";if(typeof v==="boolean"||(v==null&&eBools.test(k)))return"bool";
+ if(typeof v==="number"||(v==null&&eNums.test(k)))return"num";if(v&&typeof v==="object")return"json";
+ if(/(description|body|text|question|explain|note|content|bio|details|summary|answer|options|message)/i.test(k)||(typeof v==="string"&&v.length>90))return"area";return"text"}
+function eCols(cfg,st){if(cfg.c)return cfg.c;const r=st.sample||st.rows[0]||{};return Object.keys(r).filter(k=>k!=="id"&&!/_at$/.test(k)||k==="created_at").filter(k=>{const v=r[k];return !(typeof v==="string"&&v.length>120)&&!(v&&typeof v==="object")}).slice(0,6)}
+function eSearch(cfg,st){if(cfg.s)return cfg.s;const r=st.sample||st.rows[0]||{};return Object.keys(r).filter(k=>typeof r[k]==="string"&&!/(^id$|_id$|_at$|url|path)/i.test(k)&&r[k].length<300).slice(0,4)}
+async function eFetch(cfg,st,all){
+ const build=ord=>{let q=sb.from(cfg.t).select("*",{count:"exact"});const f=cfg.f&&cfg.f[st.f];if(f&&f[1])q=f[1](q);
+  const sc=eSearch(cfg,st),t=(st.q||"").replace(/[,()%*\\"']/g," ").trim();if(t&&sc.length)q=q.or(sc.map(c=>c+".ilike.%"+t+"%").join(","));
+  if(ord&&st.o)q=q.order(st.o,{ascending:st.asc});return all?q.range(0,999):q.range(st.page*st.size,st.page*st.size+st.size-1)};
+ let r=await build(true);if(r.error&&/column|order/i.test(r.error.message||""))r=await build(false);return r}
+function eCell(k,v,r){if(v===null||v===undefined||v==="")return'<span class="mut">–</span>';
+ if(typeof v==="boolean")return`<button class="eTg ${v?"on":""}" data-tg="${esc(k)}" aria-pressed="${v}" aria-label="${esc(eLb(k))}"></button>`;
+ if(k==="status")return`<span class="ePill s-${esc(String(v))}">${esc(String(v))}</span>`;
+ if(k==="course_id")return esc(cn(v)[0]||String(v));
+ if(typeof v==="object")return esc(JSON.stringify(v).slice(0,70));
+ if(/_at$/.test(k)&&!isNaN(Date.parse(v)))return new Date(v).toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"});
+ return esc(String(v))}
+function erpOpen(){if(!isAdmin())return;$("#erp").classList.add("show");document.body.style.overflow="hidden";erpShell();eGo(E.cur||"home")}
+function erpClose(){$("#erp").classList.remove("show");if(!$("#pjp").classList.contains("show")&&!$("#adm").classList.contains("show"))document.body.style.overflow=""}
+function erpShell(){const groups=["Content","People"].concat([...new Set(E.tmp.map(x=>x.g))]);
+ $("#erp").innerHTML=`<div class="eTop"><b>Admin console</b><span class="note" style="flex:1">Edit anything on the site</span><button class="btn s" id="eBack" style="height:38px">Back to site</button></div>
+ <div class="eBody"><nav class="eSide" aria-label="Admin sections"><a data-m="home" id="m-home">Dashboard</a>${groups.map(g=>`<div class="gl">${g}</div>${ET.concat(E.tmp).filter(x=>x.g===g).map(x=>`<a data-m="${x.k}" id="m-${x.k}">${esc(x.l)}${E.counts[x.k]!=null?`<em>${E.counts[x.k]}</em>`:""}</a>`).join("")}`).join("")}
+ <div class="gl">Tools</div><a data-m="@review">Review queue and uploads</a><a data-m="@other">Open another table…</a></nav><main class="eMain" id="eMain"></main></div>`}
+function eGo(k){if(k==="@review"){erpClose();openAdmin();return}
+ if(k==="@other"){const n=(prompt("Table name (as it appears in Supabase):","")||"").trim();if(!/^[a-z_][a-z0-9_]*$/i.test(n))return n&&toast("That is not a valid table name.");
+  if(!eCfg("x:"+n))E.tmp.push({k:"x:"+n,g:"Other tables",l:n,t:n,o:"created_at"});erpShell();k="x:"+n}
+ E.cur=k;$$("#erp .eSide a").forEach(a=>a.classList.toggle("on",a.dataset.m===k));const side=$("#erp .eSide .on");if(side&&side.scrollIntoView)side.scrollIntoView({block:"nearest",inline:"nearest"});
+ if(k==="home")eHome();else eList(true)}
+async function eHome(){const m=$("#eMain");const dl=S.res.reduce((s,r)=>s+(r.downloads||0),0),gen=S.res.filter(r=>!r.course_id).length;
+ m.innerHTML=`<h2 class="eH">Dashboard</h2><div class="eK" id="eK">${ET.map(c=>`<button class="card eKc" data-m="${c.k}"><span class="note">${esc(c.l)}</span><b id="ek-${c.k}">…</b></button>`).join("")}<div class="card eKc"><span class="note">Total downloads</span><b>${dl.toLocaleString()}</b></div></div>
+ <div class="eTwo"><div class="card" style="padding:18px"><h3 class="eH3">Needs attention</h3>
+ <div class="eRow"><span>${S.pending.length} file${S.pending.length===1?"":"s"} waiting for review</span><button class="btn s" style="height:36px" id="eGoPend">Review</button></div>
+ <div class="eRow"><span>${gen} published file${gen===1?"":"s"} in General / All</span><button class="btn s" style="height:36px" id="eGoGen">Sort them</button></div></div>
+ <div class="card" style="padding:18px"><h3 class="eH3">Recently published</h3>${S.res.slice(0,6).map(r=>`<div class="eRow"><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.title)}</span><span class="note" style="flex:none">${esc(cn(r.course_id)[0]||"General")}</span></div>`).join("")||'<p class="mut">Nothing published yet.</p>'}</div></div>
+ <p class="note" style="margin-top:18px">Everything in the left menu can be edited: open a section, click any row, and change it. Changes go live straight away.</p>`;
+ $("#eGoPend").onclick=()=>{eSt("resources").f=1;eSt("resources").page=0;eGo("resources")};$("#eGoGen").onclick=()=>{eSt("resources").f=3;eSt("resources").page=0;eGo("resources")};
+ await Promise.all(ET.map(async c=>{try{const r=await sb.from(c.t).select("*",{count:"exact",head:true});E.counts[c.k]=r.error?null:r.count;const el=document.getElementById("ek-"+c.k);if(el)el.textContent=r.error?"–":r.count}catch(e){}}));
+ $$("#erp .eSide a[data-m]").forEach(a=>{const c=E.counts[a.dataset.m];if(c!=null&&!a.querySelector("em")&&eCfg(a.dataset.m))a.insertAdjacentHTML("beforeend",`<em>${c}</em>`)})}
+async function eList(first){const cfg=eCfg(E.cur),st=eSt(E.cur),m=$("#eMain");
+ if(first||!$("#eTbl")){m.innerHTML=`<div class="eHd"><h2 class="eH">${esc(cfg.l)}</h2><span class="note" id="eCnt"></span><span style="flex:1"></span><button class="btn s" id="eExp" style="height:38px">Export CSV</button><button class="btn p" id="eNew" style="height:38px">Add new</button></div>
+ <div class="eBar"><input class="inp" id="eQ" placeholder="Search ${esc(cfg.l.toLowerCase())}" style="flex:1;min-width:180px;max-width:360px" value="${esc(st.q)}">${cfg.f?`<div class="seg" id="eF">${cfg.f.map((f,i)=>`<button data-f="${i}" class="${st.f===i?"on":""}">${f[0]}</button>`).join("")}</div>`:""}<button class="btn s" id="eRef" style="height:38px">Refresh</button></div>
+ <div id="eBulk"></div><div id="eTbl"><p class="mut">Loading…</p></div><div class="ePg" id="ePg"></div>`}
+ st.loading=true;const r=await eFetch(cfg,st);st.loading=false;
+ if(r.error){st.err=r.error.message;$("#eTbl").innerHTML=`<div class="card" style="padding:18px"><b>This table can't be read.</b><p class="note" style="margin-top:6px">${esc(r.error.message)}</p><p class="note" style="margin-top:6px">If it says permission denied, run admin-permissions.sql in Supabase.</p></div>`;$("#ePg").innerHTML="";return}
+ st.err="";st.rows=r.data||[];st.n=r.count!=null?r.count:st.rows.length;if(st.rows[0])st.sample=st.rows[0];eDraw()}
+function eDraw(){const cfg=eCfg(E.cur),st=eSt(E.cur),cols=eCols(cfg,st),tb=$("#eTbl");if(!tb)return;
+ const a=st.n?st.page*st.size+1:0,b=Math.min(st.n,(st.page+1)*st.size);$("#eCnt").textContent=st.n?`${a}-${b} of ${st.n}`:"";
+ tb.innerHTML=st.rows.length?`<div class="eTblW"><table class="eGrid"><thead><tr><th style="width:38px"><input type="checkbox" id="eAll" aria-label="Select all"></th>${cols.map(c=>`<th data-o="${esc(c)}" tabindex="0">${esc(eLb(c))}${st.o===c?(st.asc?" ▲":" ▼"):""}</th>`).join("")}<th></th></tr></thead><tbody>${st.rows.map(r=>`<tr data-id="${esc(r.id)}"><td><input type="checkbox" data-sel ${st.sel.has(String(r.id))?"checked":""} aria-label="Select row"></td>${cols.map(c=>`<td data-l="${esc(eLb(c))}">${eCell(c,r[c],r)}</td>`).join("")}<td class="eAct"><button class="btn s" data-ed style="height:34px">Edit</button></td></tr>`).join("")}</tbody></table></div>`
+  :`<div class="card" style="padding:22px"><b>${st.q||st.f?"Nothing matches.":"This table is empty."}</b></div>`;
+ const pages=Math.max(1,Math.ceil(st.n/st.size));$("#ePg").innerHTML=st.n>st.size?`<button class="btn s" id="ePrev" ${st.page?"":"disabled"} style="height:38px">Previous</button><span class="note">Page ${st.page+1} of ${pages}</span><button class="btn s" id="eNext" ${st.page+1<pages?"":"disabled"} style="height:38px">Next</button><select class="inp" id="eSz" style="width:auto;height:38px">${[25,50,100].map(n=>`<option ${n===st.size?"selected":""}>${n}</option>`).join("")}</select>`:"";
+ eBulk()}
+function eBulk(){const cfg=eCfg(E.cur),st=eSt(E.cur),n=st.sel.size,bx=$("#eBulk");if(!bx)return;
+ bx.innerHTML=n?`<div class="eBk"><b>${n} selected</b>${(cfg.bulk||[]).map((x,i)=>`<button class="btn s" data-bk="${i}" style="height:36px">${x[0]}</button>`).join("")}<button class="btn s dng" id="eDelSel" style="height:36px">Delete</button><button class="btn s" id="eClr" style="height:36px">Clear</button></div>`:""}
+function eRefresh(){return eList(false)}
+function eSync(cfg){if(["resources","courses","prep_classes","notebooks","opportunities","cbt_questions"].includes(cfg.t)){try{load();loadPending()}catch(e){}}}
+function eFields(cfg,row,isNew){const st=eSt(cfg.k),keys=row?Object.keys(row):Object.keys(st.sample||{});
+ return keys.filter(k=>!(isNew&&eRO(k))).map(k=>{const v=row?row[k]:null,t=eType(k,v,cfg),ro=!isNew&&eRO(k),lb=esc(eLb(k)),d=`data-k="${esc(k)}" data-t="${t}" ${t==="sel"&&typeof cfg.sel[k][0]==="number"?'data-n="1"':""} ${ro?"disabled":""}`;let inp;
+  if(t==="bool")return`<label class="eCb"><input type="checkbox" ${d} ${v?"checked":""}> ${lb}</label>`;
+  if(t==="sel"||t==="course"){const opts=t==="course"?[["","General / none"]].concat(C.map(c=>[c[4],c[0]+" · "+c[1]])):cfg.sel[k].map(x=>[String(x),String(x)]);if(v!=null&&v!==""&&!opts.some(o=>o[0]===String(v)))opts.push([String(v),String(v)]);
+   inp=`<select class="inp" ${d}>${(t==="sel"&&(v==null||v===""))?'<option value=""></option>':""}${opts.map(o=>`<option value="${esc(o[0])}" ${String(v==null?"":v)===o[0]?"selected":""}>${esc(o[1])}</option>`).join("")}</select>`}
+  else if(t==="json")inp=`<textarea class="inp eTa mono" rows="4" ${d}>${esc(v==null?"":JSON.stringify(v,null,2))}</textarea>`;
+  else if(t==="area")inp=`<textarea class="inp eTa" rows="4" ${d}>${esc(v==null?"":v)}</textarea>`;
+  else inp=`<input class="inp" ${t==="num"?'type="number" step="any"':""} ${d} value="${esc(v==null?"":v)}">`;
+  return`<label>${lb}${inp}</label>`}).join("")}
+function eRead(row,isNew){const out={};for(const el of $$("#md [data-k]")){if(el.disabled)continue;const k=el.dataset.k,t=el.dataset.t;let v;
+  if(t==="bool")v=el.checked;else if(t==="num")v=el.value===""?null:Number(el.value);
+  else if(t==="json"){try{v=el.value.trim()?JSON.parse(el.value):null}catch(e){throw new Error(eLb(k)+" is not valid JSON.")}}
+  else if(t==="course")v=el.value||null;else if(t==="sel"){v=el.value;if(v==="")v=null;else if(el.dataset.n==="1")v=Number(v)}else{v=el.value;if(v==="")v=(isNew||row[k]==null)?null:""}
+  if(isNew){if(v===null||v===""||v===false)continue;out[k]=v}else if(JSON.stringify(v)!==JSON.stringify(row[k]===undefined?null:row[k]))out[k]=v}return out}
+function eEdit(id){const cfg=eCfg(E.cur),row=eSt(E.cur).rows.find(r=>String(r.id)===String(id));if(!row)return;
+ openModal(mh("Edit "+esc(cfg.one||cfg.l.toLowerCase()),"Changes go live straight away.")+`<div class="form" style="border:0;padding:16px 0 0;background:none;max-height:62vh;overflow:auto">${eFields(cfg,row,false)}</div><p class="note" id="eMsg" style="color:var(--r);margin-top:10px"></p><div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap"><button class="btn p" id="eSave">Save changes</button><button class="btn s" data-x>Cancel</button><button class="btn s dng" id="eDel" style="margin-left:auto">Delete</button></div>`,true);
+ $("#eSave").onclick=async()=>{const msg=m=>$("#eMsg").textContent=m;let patch;try{patch=eRead(row,false)}catch(e){return msg(e.message)}
+  if(!Object.keys(patch).length){closeModal();return toast("No changes.")}
+  if(cfg.users&&String(row.id)===String(S.user.id)&&patch.role&&patch.role!=="admin")return msg("You can't remove your own admin access.");
+  const b=$("#eSave");b.disabled=true;b.textContent="Saving...";const r=await sb.from(cfg.t).update(patch).eq("id",row.id);
+  if(r.error){b.disabled=false;b.textContent="Save changes";return msg(r.error.message+" (if this says permission denied, run admin-permissions.sql in Supabase)")}
+  closeModal();toast("Saved.");await eRefresh();eSync(cfg)};
+ $("#eDel").onclick=async()=>{closeModal();await eDelete(cfg,[row])}}
+function eAdd(){const cfg=eCfg(E.cur),st=eSt(E.cur),known=Object.keys(st.sample||{}).length;
+ openModal(mh("Add "+esc(cfg.one?"a "+cfg.one:"to "+cfg.l.toLowerCase()),known?"Leave a field empty to skip it.":"This table is empty, so paste the new row as JSON.")+`<div class="form" style="border:0;padding:16px 0 0;background:none;max-height:62vh;overflow:auto">${known?eFields(cfg,null,true):'<label>Row as JSON<textarea class="inp eTa mono" rows="8" id="eJson" placeholder=\'{"title":"Example"}\'></textarea></label>'}</div><p class="note" id="eMsg" style="color:var(--r);margin-top:10px"></p><div style="display:flex;gap:10px;margin-top:14px"><button class="btn p" id="eSave">Add</button><button class="btn s" data-x>Cancel</button></div>`,true);
+ $("#eSave").onclick=async()=>{const msg=m=>$("#eMsg").textContent=m;let row;try{row=known?eRead(null,true):JSON.parse($("#eJson").value||"{}")}catch(e){return msg(e.message)}
+  if(!Object.keys(row).length)return msg("Fill in at least one field.");if(S.user&&cfg.t==="resources"&&!row.status)row.status="approved";
+  const b=$("#eSave");b.disabled=true;b.textContent="Adding...";const r=await sb.from(cfg.t).insert(row);
+  if(r.error){b.disabled=false;b.textContent="Add";return msg(r.error.message)}closeModal();toast("Added.");await eRefresh();eSync(cfg)}}
+async function eDelete(cfg,rows){if(!rows.length)return;if(!confirm(`Delete ${rows.length} ${rows.length===1?"row":"rows"} from ${cfg.l}? This cannot be undone.`))return;
+ const paths=rows.flatMap(r=>Object.keys(r).filter(k=>/_path$/.test(k)&&r[k]).map(k=>r[k]));
+ const r=await sb.from(cfg.t).delete().in("id",rows.map(x=>x.id));if(r.error)return toast(r.error.message);
+ if(paths.length&&confirm(`Also delete the ${paths.length} stored file${paths.length===1?"":"s"} that belonged to ${rows.length===1?"it":"them"}?`)){try{await sb.storage.from(BUCKET).remove(paths)}catch(e){}}
+ eSt(cfg.k).sel.clear();toast("Deleted.");await eRefresh();eSync(cfg)}
+async function eExport(){const cfg=eCfg(E.cur),st=eSt(E.cur),r=await eFetch(cfg,st,true);if(r.error)return toast(r.error.message);const rows=r.data||[];if(!rows.length)return toast("Nothing to export.");
+ const keys=[...new Set(rows.flatMap(x=>Object.keys(x)))],q=v=>{if(v==null)return"";const s=typeof v==="object"?JSON.stringify(v):String(v);return/[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s};
+ const csv=[keys.join(",")].concat(rows.map(x=>keys.map(k=>q(x[k])).join(","))).join("\n"),a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["\ufeff"+csv],{type:"text/csv"}));a.download=cfg.t+".csv";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),5e3)}
+$("#erp").addEventListener("click",async e=>{const t=e.target,c=s=>t.closest(s);let b;
+ if(c("#eBack"))return erpClose();
+ if(b=c("[data-m]")){if(c("tr"))return;return eGo(b.dataset.m)}
+ if(c("#eNew"))return eAdd();if(c("#eExp"))return eExport();if(c("#eRef"))return eRefresh();
+ if(c("#ePrev")){eSt(E.cur).page--;return eRefresh()}if(c("#eNext")){eSt(E.cur).page++;return eRefresh()}
+ if(b=c("#eF [data-f]")){const st=eSt(E.cur);st.f=+b.dataset.f;st.page=0;$$("#eF button").forEach(x=>x.classList.toggle("on",x===b));return eRefresh()}
+ if(b=c("th[data-o]")){const st=eSt(E.cur),k=b.dataset.o;st.asc=st.o===k?!st.asc:true;st.o=k;st.page=0;return eRefresh()}
+ if(c("#eAll")){const st=eSt(E.cur),on=c("#eAll").checked;st.rows.forEach(r=>on?st.sel.add(String(r.id)):st.sel.delete(String(r.id)));$$("#eTbl [data-sel]").forEach(x=>x.checked=on);return eBulk()}
+ if(b=c("[data-sel]")){const st=eSt(E.cur),id=String(b.closest("tr").dataset.id);b.checked?st.sel.add(id):st.sel.delete(id);return eBulk()}
+ if(c("#eClr")){eSt(E.cur).sel.clear();$$("#eTbl [data-sel]").forEach(x=>x.checked=false);const a=$("#eAll");if(a)a.checked=false;return eBulk()}
+ if(c("#eDelSel")){const st=eSt(E.cur);return eDelete(eCfg(E.cur),st.rows.filter(r=>st.sel.has(String(r.id))))}
+ if(b=c("[data-bk]")){const cfg=eCfg(E.cur),st=eSt(E.cur),act=cfg.bulk[+b.dataset.bk],ids=[...st.sel];b.disabled=true;const r=await sb.from(cfg.t).update(act[1]).in("id",ids);if(r.error){b.disabled=false;return toast(r.error.message)}st.sel.clear();toast("Updated "+ids.length+".");await eRefresh();return eSync(cfg)}
+ if(b=c("[data-tg]")){const tr=b.closest("tr"),cfg=eCfg(E.cur),row=eSt(E.cur).rows.find(r=>String(r.id)===tr.dataset.id),k=b.dataset.tg;b.disabled=true;const r=await sb.from(cfg.t).update({[k]:!row[k]}).eq("id",row.id);if(r.error){b.disabled=false;return toast(r.error.message)}row[k]=!row[k];b.disabled=false;b.classList.toggle("on",row[k]);b.setAttribute("aria-pressed",row[k]);return eSync(cfg)}
+ if(b=c("[data-ed]")){const tr=b.closest("tr");if(tr)return eEdit(tr.dataset.id)}
+ if(b=c("tr[data-id]")){if(c("input,button,a,select"))return;return eEdit(b.dataset.id)}});
+$("#erp").addEventListener("input",e=>{if(e.target.id==="eQ"){const st=eSt(E.cur);st.q=e.target.value;st.page=0;clearTimeout(E._q);E._q=setTimeout(eRefresh,300)}});
+$("#erp").addEventListener("change",e=>{if(e.target.id==="eSz"){const st=eSt(E.cur);st.size=+e.target.value;st.page=0;eRefresh()}});
+$("#admBtn").onclick=erpOpen;$("#dAdm").onclick=e=>{e.preventDefault();od(false);erpOpen()};
+document.addEventListener("keydown",e=>{if(e.key!=="Escape"||$("#bk").classList.contains("show"))return;if($("#erp").classList.contains("show"))erpClose();else if($("#pjp").classList.contains("show"))pjClose()});
+
 /* ---- PWA: service worker + "Install app" ---- */
 (()=>{
 const standalone=()=>matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;

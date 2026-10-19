@@ -7,7 +7,7 @@ const AI_KEY = process.env.GEMINI_API_KEY;
 // Old-style service_role keys are JWTs (start with "eyJ") and go in both headers; new-style secret keys (sb_secret_...) go in "apikey" only.
 const SRV = k => (k && k.startsWith("eyJ")) ? { apikey: k, Authorization: "Bearer " + k } : { apikey: k };
 const MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
-const USER_LIMIT = parseInt(process.env.PROJECT_USER_LIMIT || "8", 10);    // AI calls per student per 24h (8 = one full draft)
+const USER_LIMIT = parseInt(process.env.PROJECT_USER_LIMIT || "16", 10);    // AI calls per student per 24h (8 = one full draft, the rest are for regenerating sections)
 const GLOBAL_LIMIT = parseInt(process.env.PROJECT_GLOBAL_LIMIT || "160", 10); // AI calls for everyone per 24h (protects the free quota)
 
 const SYSTEM = `You are an expert academic research assistant, subject tutor and project writer for university students. You write complete, well-reasoned, academically sound student project drafts, one section at a time.
