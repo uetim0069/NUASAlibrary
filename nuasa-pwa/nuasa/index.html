@@ -84,7 +84,6 @@ section.sec{padding:96px 0}
 .cc{padding:18px;display:flex;flex-direction:column;gap:12px;transition:border-color .2s}.cc:hover{border-color:var(--mut)}
 .cc .c{font:700 20px var(--d);letter-spacing:-.02em}.cc .m{font-size:13px;color:var(--mut)}.cc .row{display:flex;gap:8px;margin-top:auto}
 .cc .btn{height:36px;font-size:13px;padding:0 12px;flex:1}
-.vth{position:relative;display:block;width:100%;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#0b0d10;border:1px solid var(--line);padding:0;cursor:pointer}.vth img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.vpl{position:absolute;inset:0;display:grid;place-items:center}.vpl i{width:54px;height:54px;border-radius:50%;background:rgba(0,0,0,.62);display:grid;place-items:center;transition:transform .15s}.vth:hover .vpl i{transform:scale(1.08)}.vpl svg{width:24px;height:24px;fill:#fff;margin-left:3px}
 .cbt{position:relative;border:1px solid var(--line);border-radius:24px;background:linear-gradient(160deg,color-mix(in srgb,#16a34a 8%,var(--card)),var(--card) 55%);padding:44px;overflow:hidden}
 .cbt:before{content:"";position:absolute;right:-120px;top:-120px;width:420px;height:420px;background:radial-gradient(closest-side,rgba(34,197,94,.2),transparent)}
 .cbg{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:44px}
@@ -779,7 +778,7 @@ function openUpload(dest){if(!sb)return toast("Library service is not reachable.
  <label data-p="cls">Video link (YouTube, Vimeo or Google Drive)<input class="inp" id="uCV" type="url" placeholder="https://youtu.be/..."></label>
  <label data-p="cls">Or upload a video file (any size)<input class="inp" id="uCVF" type="file" accept="video/*" style="height:auto;padding:10px 14px"></label>
  <label data-p="cls">Study materials (PDF, Word, PowerPoint or Excel, up to ${MAX_MB} MB)<input class="inp" id="uCM" type="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx" style="height:auto;padding:10px 14px"></label>
- <div id="uPrev"></div><p class="note" id="uNote"></p><p class="note" id="uErr" style="color:var(--r)"></p><button class="btn p" id="uGo">Submit</button></div>`);
+ <p class="note" id="uNote"></p><p class="note" id="uErr" style="color:var(--r)"></p><button class="btn p" id="uGo">Submit</button></div>`);
  const kind=()=>{const d=$("#uDest").value;return d.startsWith("cls:")?"cls":d},exx=()=>$("#uDest").value.slice(4);
  const fcs=()=>$("#uCrs").innerHTML=$("#uLvl").value==="0"?'<option value="">General / All (no specific course)</option>':C.filter(c=>c[2]==$("#uLvl").value).map(c=>`<option value="${esc(c[4])}">${esc(c[0])} · ${esc(c[1])}</option>`).join("");fcs();$("#uLvl").onchange=fcs;
  let src="file";
@@ -966,7 +965,7 @@ function rpx(){const g=$("#clg");if(!g)return;const lv=pxe==="all"?[...new Set(S
  $("#clAdd").style.display=isAdmin()?"":"none";
  const L=S.prep.filter(p=>(pxe==="all"||p.exam===pxe)&&(pxl==="all"||p.level===pxl));
  g.innerHTML=L.length?L.map(p=>`<div class="card cc"><div style="display:flex;justify-content:space-between;gap:8px"><span class="pill"><i style="background:${EXC[p.exam]||"#3b82f6"};box-shadow:none"></i>${esc(p.exam)} · ${esc(p.level)}</span>${CLASSES_FREE?'<span class="note" style="color:var(--g);font-weight:600">Free</span>':""}</div>
-  ${p.video_url||p.video_path?vthumb(p,`data-pxw="${esc(p.id)}"`):""}<div><div class="c" style="font-size:18px">${esc(p.title)}</div><div class="note">${esc(p.paper||"")}</div></div>${p.description?`<p class="note" style="font-size:14px">${esc(p.description)}</p>`:""}
+  <div><div class="c" style="font-size:18px">${esc(p.title)}</div><div class="note">${esc(p.paper||"")}</div></div>${p.description?`<p class="note" style="font-size:14px">${esc(p.description)}</p>`:""}
   <div class="row">${p.video_url||p.video_path?`<button class="btn p" data-pxw="${esc(p.id)}">Watch</button>`:""}${p.material_path?`<button class="btn s" data-pxm="${esc(p.id)}">Materials</button>`:""}${isAdmin()?`<button class="btn s dng" data-pxd="${esc(p.id)}">Delete</button>`:""}</div></div>`).join("")
  :`<div class="card" style="padding:32px;grid-column:1/-1;text-align:center"><b>${prepErr?"Classes are not set up yet":"No classes here yet"}</b><p class="mut" style="margin-top:6px">${prepErr?"Create the prep_classes table in Supabase.":"New videos and materials are added regularly."}</p></div>`}
 const embed=u=>{let m;if(m=u.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/|live\/))([\w-]{11})/))return "https://www.youtube-nocookie.com/embed/"+m[1];if(m=u.match(/vimeo\.com\/(\d+)/))return "https://player.vimeo.com/video/"+m[1];if(m=u.match(/drive\.google\.com\/file\/d\/([\w-]+)/))return `https://drive.google.com/file/d/${m[1]}/preview`;return null};
@@ -979,12 +978,6 @@ document.addEventListener("click",async e=>{const g=a=>e.target.closest(`[data-$
  if(w)watch(S.prep.find(x=>x.id===w));if(m){const p=S.prep.find(x=>x.id===m);saveUrl(pub(p.material_path),matName(p))}
  if(d){if(!confirm("Delete this class and its files?"))return;const p=S.prep.find(x=>x.id===d),fl=[p.video_path,p.material_path].filter(Boolean);if(fl.length)await sb.storage.from(BUCKET).remove(fl);const {error}=await sb.from("prep_classes").delete().eq("id",d);if(error)return toast(error.message);toast("Deleted.");await loadPrep();rpx()}});
 
-/* Video link previews (YouTube and Drive thumbnails) */
-const ytId=u=>{const m=String(u||"").match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:[^#]*&)?v=|embed\/|shorts\/|live\/))([\w-]{11})/);return m?m[1]:null},
- thumbSrc=u=>{const y=ytId(u);if(y)return`https://i.ytimg.com/vi/${y}/hqdefault.jpg`;const d=(String(u||"").match(/drive\.google\.com\/file\/d\/([\w-]+)/)||[])[1];return d?`https://drive.google.com/thumbnail?id=${d}&sz=w640`:""},
- vthumb=(p,attr)=>`<button type="button" class="vth" ${attr} aria-label="Play video">${thumbSrc(p.video_url)?`<img src="${esc(thumbSrc(p.video_url))}" alt="" loading="lazy" onerror="this.remove()">`:""}<span class="vpl"><i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></i></span></button>`;
-document.addEventListener("input",e=>{if(e.target.id!=="uLink"&&e.target.id!=="uCV")return;const box=$("#uPrev");if(!box)return;const src=thumbSrc(e.target.value);box.innerHTML=src?`<img src="${esc(src)}" alt="Video preview" style="width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:12px;border:1px solid var(--line)" onerror="this.remove()">`:""});
-
 /* Videos section */
 S.vids=[];let vcat="all",vq="",vidErr=false;const VCATS=["General",...Object.keys(LVLS)];
 const vSize=b=>b>=1073741824?(b/1073741824).toFixed(1)+" GB":Math.max(1,Math.round(b/1048576))+" MB";
@@ -993,7 +986,7 @@ function rvid(){const g=$("#vg");if(!g)return;
  $("#vcat").innerHTML=["all",...VCATS].map(k=>`<button class="${vcat===k?"on":""}" data-vc="${k}">${k==="all"?"All":k}</button>`).join("");
  const q=vq.toLowerCase(),L=S.vids.filter(v=>(vcat==="all"||(v.category||"General")===vcat)&&((v.title||"")+" "+(v.description||"")).toLowerCase().includes(q));
  g.innerHTML=L.length?L.map(v=>`<div class="card cc"><div style="display:flex;justify-content:space-between;gap:8px"><span class="pill"><i style="background:${EXC[v.category]||"var(--g)"};box-shadow:none"></i>${esc(v.category||"General")}</span>${v.file_size?`<span class="note">${vSize(v.file_size)}</span>`:""}</div>
-  ${vthumb(v,`data-vw="${esc(v.id)}"`)}<div class="c" style="font-size:18px">${esc(v.title)}</div>${v.description?`<p class="note" style="font-size:14px">${esc(v.description)}</p>`:""}
+  <div class="c" style="font-size:18px">${esc(v.title)}</div>${v.description?`<p class="note" style="font-size:14px">${esc(v.description)}</p>`:""}
   <div class="row"><button class="btn p" data-vw="${esc(v.id)}">Watch</button>${isAdmin()?`<button class="btn s dng" data-vd="${esc(v.id)}">Delete</button>`:""}</div></div>`).join("")
  :`<div class="card" style="padding:32px;grid-column:1/-1;text-align:center"><b>${vidErr?"Videos are not set up yet":"No videos here yet"}</b><p class="mut" style="margin-top:6px">${vidErr?"Run videos-citn.sql in Supabase.":"Tap Upload video to add the first one."}</p></div>`}
 document.addEventListener("input",e=>{if(e.target.id==="vq"){vq=e.target.value;rvid()}});
