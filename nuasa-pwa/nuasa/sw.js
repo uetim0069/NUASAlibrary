@@ -1,5 +1,5 @@
 /* NUASA Library service worker. Bump VERSION to force clients to refresh cached files. */
-const VERSION = "v10";
+const VERSION = "v11";
 const SHELL = "nuasa-shell-" + VERSION;
 const ASSETS = "nuasa-assets-" + VERSION;
 const FILES = "nuasa-files"; // files students saved for offline. Never deleted by updates.
