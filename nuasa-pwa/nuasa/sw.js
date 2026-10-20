@@ -1,11 +1,11 @@
 /* NUASA Library service worker. Bump VERSION to force clients to refresh cached files. */
-const VERSION = "v11";
+const VERSION = "v12";
 const SHELL = "nuasa-shell-" + VERSION;
 const ASSETS = "nuasa-assets-" + VERSION;
 const FILES = "nuasa-files"; // files students saved for offline. Never deleted by updates.
 const PRECACHE = ["/", "/offline.html", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png", "/icons/apple-touch-icon.png"];
 // Public, read-only library data that may be shown offline (never user, profile or pending-review data).
-const DATA = /^\/rest\/v1\/(courses|notebooks|prep_classes|opportunities|cbt_questions|resources)(\?|$)/;
+const DATA = /^\/rest\/v1\/(courses|notebooks|prep_classes|opportunities|cbt_questions|resources|videos)(\?|$)/;
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(SHELL).then(c => c.addAll(PRECACHE)).then(() => self.skipWaiting()));
@@ -50,7 +50,7 @@ self.addEventListener("fetch", e => {
   }
 
   // Course, file and class lists (approved items only).
-  if (url.hostname.endsWith(".supabase.co") && DATA.test(url.pathname) && (!url.pathname.includes("/resources") || url.search.includes("status=eq.approved"))) {
+  if (url.hostname.endsWith(".supabase.co") && DATA.test(url.pathname) && (!/\/(resources|videos)/.test(url.pathname) || url.search.includes("status=eq.approved"))) {
     e.respondWith(dataFirst(req));
     return;
   }
