@@ -3,7 +3,7 @@
 -- 1. "General / All" section: allow library files that belong to no course.
 alter table public.resources alter column course_id drop not null;
 
--- 2. Project Helper: tracks usage so the free AI quota is not used up.
+-- 2. Project AI Studio: tracks usage so the free AI quota is not used up.
 create table if not exists public.project_usage (
   id bigserial primary key,
   user_id uuid not null,
