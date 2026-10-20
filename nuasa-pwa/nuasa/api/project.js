@@ -39,6 +39,61 @@ const clean = (v, n) => String(v || "").replace(/[\u0000-\u001f]+/g, " ").trim()
 const fail = (res, code, error) => { res.statusCode = code; res.setHeader("Content-Type", "application/json"); res.end(JSON.stringify({ error })); };
 const total = r => parseInt((r.headers.get("content-range") || "0/0").split("/")[1], 10) || 0;
 
+const TOPIC_LIMIT = parseInt(process.env.PROJECT_TOPIC_LIMIT || "12", 10); // topic searches per student per 24h
+const TOPIC_SYSTEM = `You are an experienced final-year project supervisor at a Nigerian university. You suggest project topics that a student can realistically finish in one or two semesters.
+Rules: every topic must be specific (a named variable relationship, population, place or period), researchable with data the student can actually get, and written as a proper academic title. Vary the angle across topics. Use the Nigerian setting where relevant (FIRS, CBN, FRC, ICAN, NGX, SMEDAN, IFRS adoption). Never claim statistics, findings or named reports you are not sure exist. Do not repeat the same idea in different words.`;
+const TOPIC_SCHEMA = { type: "ARRAY", items: { type: "OBJECT", properties: {
+  title: { type: "STRING" }, angle: { type: "STRING" }, method: { type: "STRING" }, data: { type: "STRING" }, difficulty: { type: "STRING", enum: ["Easy", "Moderate", "Challenging"] } },
+  required: ["title", "angle", "method", "data", "difficulty"] } };
+
+async function topicsMode(res, user, body) {
+  const f = body.form || {};
+  const field = clean(f.field, 100);
+  if (field.length < 3) return fail(res, 400, "Enter your field of study.");
+  const interest = clean(f.interest, 120), scope = clean(f.scope, 100);
+  const level = LEVELS.includes(f.level) ? f.level : LEVELS[1];
+  const approach = ["Any", "Quantitative", "Qualitative", "Mixed"].includes(f.method) ? f.method : "Any";
+  const since = encodeURIComponent(new Date(Date.now() - 864e5).toISOString());
+  const H = { ...SRV(SB_SERVICE), Prefer: "count=exact", Range: "0-0" };
+  try {
+    const [mine, all] = await Promise.all([
+      fetch(`${SB_URL}/rest/v1/project_usage?user_id=eq.${user.id}&section=eq.topics&created_at=gte.${since}&select=id`, { headers: H }),
+      fetch(`${SB_URL}/rest/v1/project_usage?created_at=gte.${since}&select=id`, { headers: H }),
+    ]);
+    if (!mine.ok || !all.ok) throw new Error("count");
+    if (total(mine) >= TOPIC_LIMIT) return fail(res, 429, "You have used today's topic searches. Please come back tomorrow.");
+    if (total(all) >= GLOBAL_LIMIT) return fail(res, 429, "The Project Helper is full for today because the free quota is used up. Please try again tomorrow.");
+  } catch (e) { return fail(res, 500, "Usage check failed. Please try again."); }
+
+  const msg = `Suggest 6 project topics.\nField of study: ${field}\nStudent interests: ${interest || "not stated, choose current and relevant areas"}\nPlace or sector focus: ${scope || "Nigeria in general"}\nAcademic level: ${level}\nPreferred approach: ${approach}\n\nFor each topic give: title (a proper academic title), angle (1 or 2 sentences on the problem or gap it addresses), method (one sentence: design, sample or sources, and analysis technique), data (where the student can realistically get the data), difficulty (Easy, Moderate or Challenging).`;
+  const gen = { temperature: 0.9, maxOutputTokens: 2500, responseMimeType: "application/json", responseSchema: TOPIC_SCHEMA };
+  if (/2\.5-flash/.test(MODEL)) gen.thinkingConfig = { thinkingBudget: 0 };
+  let up;
+  try {
+    up = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`, {
+      method: "POST", headers: { "x-goog-api-key": AI_KEY, "content-type": "application/json" },
+      body: JSON.stringify({ systemInstruction: { parts: [{ text: TOPIC_SYSTEM }] }, contents: [{ role: "user", parts: [{ text: msg }] }], generationConfig: gen }),
+    });
+  } catch (e) { return fail(res, 502, "The assistant could not be reached. Try again."); }
+  if (!up.ok) {
+    console.error("gemini topics", up.status, await up.text().catch(() => ""));
+    return fail(res, up.status === 429 ? 429 : 502, up.status === 429 ? "The free AI quota is busy right now. Wait a minute and try again." : "The assistant is unavailable right now (code " + up.status + ").");
+  }
+  let topics;
+  try {
+    const d = await up.json();
+    const txt = ((d.candidates && d.candidates[0] && d.candidates[0].content && d.candidates[0].content.parts) || []).map(p => p.text || "").join("");
+    const arr = JSON.parse(txt.replace(/^```json|```$/g, "").trim());
+    topics = arr.filter(t => t && t.title).slice(0, 8).map(t => ({
+      title: clean(t.title, 220), angle: clean(t.angle, 500), method: clean(t.method, 360), data: clean(t.data, 300),
+      difficulty: ["Easy", "Moderate", "Challenging"].includes(t.difficulty) ? t.difficulty : "Moderate" }));
+    if (!topics.length) throw new Error("empty");
+  } catch (e) { return fail(res, 502, "The assistant returned an unreadable answer. Tap Generate again."); }
+  try { await fetch(SB_URL + "/rest/v1/project_usage", { method: "POST", headers: { ...SRV(SB_SERVICE), "Content-Type": "application/json", Prefer: "return=minimal" }, body: JSON.stringify({ user_id: user.id, section: "topics" }) }); } catch (e) {}
+  res.statusCode = 200; res.setHeader("Content-Type", "application/json"); res.setHeader("Cache-Control", "no-store");
+  res.end(JSON.stringify({ topics }));
+}
+
 module.exports = async (req, res) => {
   if (req.method !== "POST") return fail(res, 405, "Method not allowed.");
   if (!AI_KEY || !SB_SERVICE) return fail(res, 500, "The Project Helper is not set up yet. Please tell the NUASA admin.");
@@ -52,6 +107,8 @@ module.exports = async (req, res) => {
     if (!u.ok) return fail(res, 401, "Your session expired. Please sign in again.");
     user = await u.json();
   } catch (e) { return fail(res, 502, "Could not verify your sign-in. Try again."); }
+
+  if ((req.body || {}).mode === "topics") return topicsMode(res, user, req.body);
 
   // 2. Validate input (the client can only pick a section id and project details, never free-form prompts)
   const body = req.body || {};
@@ -71,7 +128,7 @@ module.exports = async (req, res) => {
   const H = { ...SRV(SB_SERVICE), Prefer: "count=exact", Range: "0-0" };
   try {
     const [mine, all] = await Promise.all([
-      fetch(`${SB_URL}/rest/v1/project_usage?user_id=eq.${user.id}&created_at=gte.${since}&select=id`, { headers: H }),
+      fetch(`${SB_URL}/rest/v1/project_usage?user_id=eq.${user.id}&section=neq.topics&created_at=gte.${since}&select=id`, { headers: H }),
       fetch(`${SB_URL}/rest/v1/project_usage?created_at=gte.${since}&select=id`, { headers: H }),
     ]);
     if (!mine.ok || !all.ok) throw new Error("count");
