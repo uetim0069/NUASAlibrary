@@ -27,7 +27,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-:root{color-scheme:dark;--z-header:50;--z-drawer:80;--z-adm:85;--z-erp:86;--z-modal:90;--z-exam:100;--z-calc:120;--z-dialog:130;--z-popover:150;--z-toast:200;--grid:rgba(255,255,255,.045);--bg:#07080a;--card:#0e1013;--sub:#14171b;--line:#1f242a;--fg:#eceee9;--mut:#8d959f;--g:#22c55e;--gd:#16a34a;--r:#ef4444;--glow:rgba(34,197,94,.14);--d:'Bricolage Grotesque',system-ui,sans-serif;--b:'Geist',system-ui,sans-serif}
+:root{color-scheme:dark;--z-welcome:140;--z-header:50;--z-drawer:80;--z-adm:85;--z-erp:86;--z-modal:90;--z-exam:100;--z-calc:120;--z-dialog:130;--z-popover:150;--z-toast:200;--grid:rgba(255,255,255,.045);--bg:#07080a;--card:#0e1013;--sub:#14171b;--line:#1f242a;--fg:#eceee9;--mut:#8d959f;--g:#22c55e;--gd:#16a34a;--r:#ef4444;--glow:rgba(34,197,94,.14);--d:'Bricolage Grotesque',system-ui,sans-serif;--b:'Geist',system-ui,sans-serif}
 :root[data-theme="light"]{--bg:#f6f8f5;--card:#ffffff;--sub:#eef2ec;--line:#dde3da;--fg:#0c120e;--mut:#5a655c;--g:#16a34a;--r:#dc2626;--glow:rgba(22,163,74,.16);--grid:rgba(0,0,0,.05);color-scheme:light}
 *{box-sizing:border-box;margin:0}html{scroll-behavior:smooth;scroll-padding-top:84px;overflow-x:clip}
 body{background:var(--bg);color:var(--fg);font:400 16px/1.55 var(--b);-webkit-font-smoothing:antialiased;overflow-x:clip;padding-top:env(safe-area-inset-top,0)}
@@ -291,6 +291,52 @@ h1,h2,h3,summary{text-wrap:balance}p,.sh p,.lead,.note,details p{text-wrap:prett
 .fg .card:first-child .ico{width:52px;height:52px;border-radius:14px;margin-bottom:auto}
 .steps .card{border-color:transparent;background:var(--sub)}
 @media(max-width:900px){.fg{grid-template-columns:minmax(0,1fr)}.fg .card:first-child{grid-row:auto;min-height:0}section.sec{padding:64px 0 76px}}
+
+/* ---- Video lessons (YouTube-style cards) ---- */
+.vg{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:28px 16px}
+.vc{display:flex;flex-direction:column;gap:12px;min-width:0}
+.vt{position:relative;display:block;width:100%;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:var(--sub);border:1px solid var(--line);padding:0}
+.vt:disabled{cursor:default}
+.vt img,.vph{position:absolute;inset:0;width:100%;height:100%}
+.vt img{object-fit:cover;transition:transform .35s cubic-bezier(.2,.8,.2,1)}
+.vph{display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-end;gap:2px;padding:14px;text-align:left;background:linear-gradient(145deg,color-mix(in srgb,var(--g) 24%,var(--card)),var(--card) 72%)}
+.vph b{font:800 34px/1 var(--d);letter-spacing:-.04em;color:var(--g)}.vph span{font-size:13px;color:var(--mut);max-width:72%;line-height:1.3}
+.vp{position:absolute;left:50%;top:50%;width:48px;height:48px;margin:-24px 0 0 -24px;border-radius:50%;background:rgba(7,8,10,.64);backdrop-filter:blur(6px);display:grid;place-items:center;color:#fff;transition:transform .2s,background .2s,color .2s}
+.vp svg{width:22px;height:22px;fill:currentColor}.vp svg path:first-child{margin-left:2px}
+.vt:not(:disabled):hover .vp{background:var(--g);color:#04130a;transform:scale(1.08)}.vt:hover img{transform:scale(1.03)}
+.vb{position:absolute;right:8px;bottom:8px;font:600 12px var(--b);font-style:normal;background:rgba(7,8,10,.84);color:#fff;padding:3px 7px;border-radius:6px}
+.vi{display:flex;flex-direction:column;gap:3px;min-width:0}
+.vtl{text-align:left;font:600 16px/1.3 var(--d);letter-spacing:-.01em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;padding:0}.vtl:not(:disabled):hover{color:var(--g)}
+.vm{font-size:13px;color:var(--mut)}
+.vd{font-size:13.5px;color:var(--mut);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.va{display:flex;gap:16px;margin-top:2px}.va:empty{display:none}.va button{font-size:13px;font-weight:600;color:var(--g);min-height:32px}.va .dng{color:var(--r)}
+@media(max-width:600px){.vg{grid-template-columns:minmax(0,1fr);gap:20px}.vc{flex-direction:row;align-items:flex-start;gap:12px}.vt{width:44%;max-width:184px;flex:none}.vd,.vb,.vph span{display:none}.vp{width:34px;height:34px;margin:-17px 0 0 -17px}.vp svg{width:16px;height:16px}.vph{padding:10px}.vph b{font-size:22px}}
+
+/* ---- Welcome guide (first visit, reopen from the menu) ---- */
+.wl{position:fixed;inset:0;z-index:var(--z-welcome);background:var(--bg);display:flex;flex-direction:column;padding:calc(env(safe-area-inset-top,0px) + 14px) 20px calc(env(safe-area-inset-bottom,0px) + 20px)}
+.wl[hidden]{display:none}
+.wl-top,.wl-body,.wl-foot{width:100%;max-width:520px;margin:0 auto}
+.wl-top{display:flex;justify-content:space-between;align-items:center}
+.wl-skip{font-size:16px;color:var(--mut);min-height:44px;padding:0 8px;border-radius:8px}.wl-skip:hover{color:var(--fg)}.wl-skip[hidden]{display:block;visibility:hidden}
+.wl-body{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.wl-slide{width:100%;display:flex;flex-direction:column;align-items:center;animation:wlin .35s cubic-bezier(.2,.8,.2,1)}
+@keyframes wlin{from{opacity:0;transform:translateX(18px)}}
+.wl-art{width:100%;height:min(290px,36vh);display:grid;place-items:center;margin-bottom:26px;position:relative}
+.wl h2{font-size:clamp(30px,8vw,40px);font-weight:700;max-width:14em}
+.wl-slide p{color:var(--mut);margin-top:14px;font-size:17px;max-width:36ch}
+.wl-foot{display:grid;gap:22px;justify-items:center;padding-top:16px}
+.wl-dots{display:flex;gap:8px}.wl-dots i{width:8px;height:8px;border-radius:9px;background:var(--line);transition:width .25s,background .25s}.wl-dots i.on{width:28px;background:var(--g)}
+.wl-next{width:100%;height:54px;font-size:17px;border-radius:14px}
+.wf{position:relative;width:300px;height:200px}
+.wc{position:absolute;left:50%;top:50%;width:122px;height:164px;margin:-82px 0 0 -61px;padding:12px;border-radius:14px;background:var(--card);border:1px solid var(--line);display:flex;flex-direction:column;gap:7px;text-align:left;box-shadow:0 16px 40px rgba(2,16,8,.5)}
+.wc b{font:700 17px var(--d);letter-spacing:-.02em;color:var(--g)}.wc i{height:6px;border-radius:4px;background:var(--line)}.wc i:nth-of-type(2){width:72%}.wc small{margin-top:auto;font-size:11.5px;color:var(--mut)}
+.wc:nth-child(1){transform:translateX(-86px) rotate(-12deg)}.wc:nth-child(2){transform:translateX(86px) rotate(12deg)}.wc:nth-child(3){z-index:1;transform:translateY(-6px);border-color:var(--g);box-shadow:0 18px 44px rgba(2,16,8,.55),0 0 0 1px rgba(34,197,94,.25)}
+.wsb{display:flex;align-items:center;gap:10px;height:46px;padding:0 14px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--mut);font-size:15px;width:280px;margin-bottom:12px}.wsb svg{width:18px;height:18px;flex:none}
+.wlv{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:280px}.wlv div{padding:14px 16px;text-align:left;border:1px solid var(--line);border-radius:14px;background:var(--card)}.wlv b{display:block;font:800 36px/1 var(--d);letter-spacing:-.05em}.wlv span{font-size:12.5px;color:var(--mut)}.wlv .on{border-color:var(--g);background:rgba(34,197,94,.08)}
+.wl-demo{width:300px;text-align:left;padding:18px}.wl-demo h3{font-size:17px;margin:14px 0 10px;line-height:1.3;letter-spacing:-.01em}.wl-demo .op{margin-top:6px;padding:10px 12px;font-size:14px}
+.wr{display:flex;align-items:center;gap:14px;width:310px;text-align:left;padding:11px 14px;border:1px solid var(--line);border-radius:14px;background:var(--card)}.wr+.wr{margin-top:8px}
+.wr svg{width:22px;height:22px;flex:none;fill:none;stroke:var(--g);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.wr b{display:block;font:600 15px var(--d)}.wr span{font-size:13px;color:var(--mut)}
+@media(max-height:640px){.wl-art{height:200px;transform:scale(.82);margin-bottom:6px}.wl-slide p{font-size:16px}}
 </style></head>
 <body>
 <a class="skip" href="#top">Skip to content</a>
@@ -308,7 +354,7 @@ h1,h2,h3,summary{text-wrap:balance}p,.sh p,.lead,.note,details p{text-wrap:prett
   <a href="#classes" class="mi big"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M10 9.5v4l3.5-2z"/><path d="M8 21h8"/></svg><span><b>ICAN and ATS</b><small>Video classes and study materials</small></span></a>
   <a href="#" class="mi big" id="dPj"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg><span><b>Project AI Studio</b><small>Topic ideas and full project drafts</small></span></a>
   <div class="rule"></div>
-  <a href="#top" class="mi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/></svg><span>Home</span></a><a href="#opps" class="mi"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M3 13h18"/></svg><span>Opportunities</span></a><a href="#how" class="mi"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg><span>How it works</span></a><a href="#faq" class="mi"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5M12 17h.01"/></svg><span>FAQ</span></a>
+  <a href="#top" class="mi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/></svg><span>Home</span></a><a href="#opps" class="mi"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M3 13h18"/></svg><span>Opportunities</span></a><a href="#how" class="mi"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg><span>How it works</span></a><a href="#faq" class="mi"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5M12 17h.01"/></svg><span>FAQ</span></a><a href="#" id="dGuide" class="mi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3 3 5v16l6-2 6 2 6-2V3l-6 2z"/><path d="M9 3v16M15 5v16"/></svg><span>How to use the library</span></a>
   <div class="rule"></div>
   <a href="#" id="dTh" class="mi" role="switch" aria-checked="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><span>Light mode</span><i class="sw"></i></a>
   <a href="#" id="dInst" class="mi" style="display:none"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7.5 11 12 15.5 16.5 11M5 20h14"/></svg><span>Install app</span></a>
@@ -359,7 +405,7 @@ h1,h2,h3,summary{text-wrap:balance}p,.sh p,.lead,.note,details p{text-wrap:prett
 
 <section class="sec flush" id="classes"><div class="w">
   <div class="sh"><h2>ICAN and ATS preparatory classes.</h2><p>Video lessons and study materials to help you prepare for your professional exams. Free for now.</p></div>
-  <div class="tools"><div class="seg" id="clx"></div><div class="seg" id="cll" style="flex-wrap:wrap"></div><button class="btn p" id="clAdd" style="display:none;margin-left:auto">Add class</button></div><div class="cg" id="clg"></div>
+  <div class="tools"><div class="seg" id="clx"></div><div class="seg" id="cll" style="flex-wrap:wrap"></div><button class="btn p" id="clAdd" style="display:none;margin-left:auto">Add class</button></div><div class="vg" id="clg"></div>
 </div></section>
 
 <section class="sec flush" id="opps"><div class="w">
@@ -404,7 +450,7 @@ h1,h2,h3,summary{text-wrap:balance}p,.sh p,.lead,.note,details p{text-wrap:prett
 
 <footer><div class="w fgrid">
   <div><a href="#top" class="brand"><i class="l3"><img src="/icons/logo.jpg" width="36" height="36" decoding="async" alt=""></i><span>NUASA Library</span></a><p style="margin-top:12px;max-width:320px">Nigerian Universities Accounting Students Association, University of Uyo.</p></div>
-  <div class="fl"><a href="#library">Library</a><a href="#nlm">NotebookLM</a><a href="#classes">ICAN and ATS</a><a href="#opps">Opportunities</a><a href="#cbt">CBT Practice</a><a href="#faq">FAQ</a></div>
+  <div class="fl"><a href="#library">Library</a><a href="#nlm">NotebookLM</a><a href="#classes">ICAN and ATS</a><a href="#opps">Opportunities</a><a href="#cbt">CBT Practice</a><a href="#faq">FAQ</a><a href="#" id="fGuide">How to use the library</a></div>
   <p style="text-align:right">Courtesy to Emediong Augustine’s Administration<br>© <span id="yr"></span> NUASA UNIUYO</p>
 </div></footer>
 
@@ -414,6 +460,11 @@ h1,h2,h3,summary{text-wrap:balance}p,.sh p,.lead,.note,details p{text-wrap:prett
 <div id="pjp" aria-label="Project AI Studio"></div>
 <div id="bk"><div id="md" role="dialog"></div></div>
 <div id="exd" class="dlgb"></div><div id="calc"></div>
+<div id="wl" class="wl" role="dialog" aria-modal="true" aria-labelledby="wlT" hidden>
+  <div class="wl-top"><span class="brand"><i class="l3"><img src="/icons/logo.jpg" width="36" height="36" alt="" decoding="async"></i><span>NUASA Library</span></span><button class="wl-skip" id="wlSkip" type="button">Skip</button></div>
+  <div class="wl-body" id="wlBody"></div>
+  <div class="wl-foot"><div class="wl-dots" id="wlDots" aria-hidden="true"></div><button class="btn p wl-next" id="wlNext" type="button">Next</button></div>
+</div>
 <div id="toast" role="status"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
@@ -978,14 +1029,20 @@ const CLASSES_FREE=true,LVLS={ICAN:["Foundation","Skills","Professional"],ATS:["
 S.prep=[];let pxe="all",pxl="all",prepErr=false;
 const pub=p=>p&&sb?sb.storage.from(BUCKET).getPublicUrl(p).data.publicUrl:"";
 async function loadPrep(){if(!sb)return;try{const {data,error}=await sb.from("prep_classes").select("*").order("created_at",{ascending:false});S.prep=data||[];prepErr=!!error}catch(e){prepErr=true}}
+/* Video lesson cards: YouTube and Drive links give a real cover photo; everything else gets a clean placeholder. */
+const vImg=u=>{u=u||"";let m;if(m=u.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/|live\/))([\w-]{11})/))return "https://i.ytimg.com/vi/"+m[1]+"/mqdefault.jpg";if(m=u.match(/drive\.google\.com\/file\/d\/([\w-]+)/))return "https://drive.google.com/thumbnail?id="+m[1]+"&sz=w480";return ""};
+const vc=p=>{const hasV=!!(p.video_url||p.video_path),id=esc(p.id),key=hasV?`data-pxw="${id}"`:p.material_path?`data-pxm="${id}"`:"",img=vImg(p.video_url),
+ ph=`<span class="vph" aria-hidden="true"><b>${esc(p.exam)}</b><span>${esc(p.paper||p.level)}</span></span>`,
+ ic=hasV?'<path d="M8 5v14l11-7z"/>':'<path d="M7 3h7l4 4v14H7z"/><path d="M14 3v5h4" fill="none" stroke="currentColor" stroke-width="1.6"/>';
+ return `<article class="vc"><button class="vt" ${key}${key?"":" disabled"} aria-label="${hasV?"Watch":"Open materials for"}: ${esc(p.title)}">${ph}${img?`<img src="${esc(img)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()">`:""}<i class="vp"><svg viewBox="0 0 24 24" aria-hidden="true">${ic}</svg></i><em class="vb">${esc(p.exam)} · ${esc(p.level)}</em></button>
+ <div class="vi"><button class="vtl" ${key}${key?"":" disabled"}>${esc(p.title)}</button><div class="vm">${p.paper?esc(p.paper)+" · ":""}${CLASSES_FREE?"Free":esc(p.level)}</div>${p.description?`<p class="vd">${esc(p.description)}</p>`:""}
+ <div class="va">${hasV&&p.material_path?`<button data-pxm="${id}">Materials</button>`:""}${isAdmin()?`<button class="dng" data-pxd="${id}">Delete</button>`:""}</div></div></article>`};
 function rpx(){const g=$("#clg");if(!g)return;const lv=pxe==="all"?[...new Set(S.prep.map(p=>p.level))]:LVLS[pxe];
  $("#clx").innerHTML=[["all","All"],["ICAN","ICAN"],["ATS","ATS"]].map(([k,l])=>`<button class="${pxe===k?"on":""}" data-pxe="${k}">${l}</button>`).join("");
  $("#cll").innerHTML=lv.length?["all",...lv].map(l=>`<button class="${pxl===l?"on":""}" data-pxl="${esc(l)}">${l==="all"?"All levels":esc(l)}</button>`).join(""):"";
  $("#clAdd").style.display=isAdmin()?"":"none";
  const L=S.prep.filter(p=>(pxe==="all"||p.exam===pxe)&&(pxl==="all"||p.level===pxl));
- g.innerHTML=L.length?L.map(p=>`<div class="card cc"><div style="display:flex;justify-content:space-between;gap:8px"><span class="pill"><i style="background:${p.exam==="ICAN"?"#22c55e":"#3b82f6"};box-shadow:none"></i>${esc(p.exam)} · ${esc(p.level)}</span>${CLASSES_FREE?'<span class="note" style="color:var(--g);font-weight:600">Free</span>':""}</div>
-  <div><div class="c" style="font-size:18px">${esc(p.title)}</div><div class="note">${esc(p.paper||"")}</div></div>${p.description?`<p class="note" style="font-size:14px">${esc(p.description)}</p>`:""}
-  <div class="row">${p.video_url||p.video_path?`<button class="btn p" data-pxw="${esc(p.id)}">Watch</button>`:""}${p.material_path?`<button class="btn s" data-pxm="${esc(p.id)}">Materials</button>`:""}${isAdmin()?`<button class="btn s dng" data-pxd="${esc(p.id)}">Delete</button>`:""}</div></div>`).join("")
+ g.innerHTML=L.length?L.map(vc).join("")
  :`<div class="card" style="padding:32px;grid-column:1/-1;text-align:center"><b>${prepErr?"Classes are not set up yet":"No classes here yet"}</b><p class="mut" style="margin-top:6px">${prepErr?"Create the prep_classes table in Supabase.":"New videos and materials are added regularly."}</p></div>`}
 const embed=u=>{let m;if(m=u.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/|live\/))([\w-]{11})/))return "https://www.youtube-nocookie.com/embed/"+m[1];if(m=u.match(/vimeo\.com\/(\d+)/))return "https://player.vimeo.com/video/"+m[1];if(m=u.match(/drive\.google\.com\/file\/d\/([\w-]+)/))return `https://drive.google.com/file/d/${m[1]}/preview`;return null};
 async function saveUrl(u,name){try{const b=await(await fetch(u)).blob(),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),5e3);toast("Download started.")}catch(e){window.open(u,"_blank","noopener")}}
@@ -1464,4 +1521,52 @@ link.onclick=async e=>{e.preventDefault();if(typeof od==="function")od(false);
  if(ios)sheet("Add to Home Screen",["Tap the <b>Share</b> button in Safari (the square with an arrow).","Scroll down and tap <b>Add to Home Screen</b>.","Tap <b>Add</b>. NUASA Library now opens like an app."]);
  else sheet("Install NUASA Library",["Open your browser menu (the three dots).","Tap <b>Install app</b> or <b>Add to Home screen</b>.","Confirm, and the app appears on your home screen."])};
 })();
-</script></body></html>
+</script>
+<script>
+/* Welcome guide: shows once on a first visit, and from "How to use the library" in the menu. */
+(()=>{
+const KEY="nuasa_welcome_v1",el=document.getElementById("wl");if(!el)return;
+const body=document.getElementById("wlBody"),dots=document.getElementById("wlDots"),next=document.getElementById("wlNext"),skip=document.getElementById("wlSkip");
+const ico=d=>`<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
+const SL=[
+ {t:"Welcome to NUASA Library",p:"Past questions, lecture notes and timed CBT practice for accounting students of the University of Uyo.",
+  a:`<div class="wf"><div class="wc"><b>ACC 101</b><i></i><i></i><small>Past questions</small></div><div class="wc"><b>ECO 201</b><i></i><i></i><small>Lecture notes</small></div><div class="wc"><b>ACC 305</b><i></i><i></i><small>Textbooks</small></div></div>`},
+ {t:"Find your course",p:"Choose your level, then search by course code or title. Download files, or save them to read offline.",
+  a:`<div><div class="wsb">${ico('<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>')}<span>Search ACC 305</span></div><div class="wlv"><div><b>100</b><span>Foundations</span></div><div><b>200</b><span>Core accounting</span></div><div class="on"><b>300</b><span>Intermediate</span></div><div><b>400</b><span>Advanced</span></div></div></div>`},
+ {t:"Practise like it’s exam day",p:"Timed CBT built from past questions, with a question navigator and the right answer explained for every question.",
+  a:`<div class="demo wl-demo"><div class="t"><span>ACC 101 · Question 3 of 40</span><b>24:18</b></div><div class="bar"><i style="width:7.5%"></i></div><h3>A trial balance is prepared mainly to check that…</h3><div class="op ok"><b>A</b>Total debits equal total credits</div><div class="op"><b>B</b>All transactions were recorded</div></div>`},
+ {t:"Everything else is in the menu",p:"Sign in to join the weekly CBT leaderboard and use Project AI Studio.",
+  a:`<div><div class="wr">${ico('<rect x="3" y="5" width="18" height="12" rx="2"/><path d="M10 9.5v4l3.5-2z"/><path d="M8 21h8"/>')}<div><b>ICAN and ATS classes</b><span>Video lessons and study materials</span></div></div><div class="wr">${ico('<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/>')}<div><b>NotebookLM</b><span>AI study notebooks for your courses</span></div></div><div class="wr">${ico('<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M3 13h18"/>')}<div><b>Opportunities</b><span>Internships, scholarships and jobs</span></div></div><div class="wr">${ico('<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/>')}<div><b>Project AI Studio</b><span>Topic ideas and full project drafts</span></div></div></div>`}
+];
+let i=0,opener=null;
+const seen=()=>{try{localStorage.setItem(KEY,"1")}catch(e){}};
+function draw(go){
+ const s=SL[i],last=i===SL.length-1;
+ body.innerHTML=`<div class="wl-slide"><div class="wl-art" aria-hidden="true">${s.a}</div><h2 id="wlT">${s.t}</h2><p>${s.p}</p></div>`;
+ dots.innerHTML=SL.map((_,n)=>`<i class="${n===i?"on":""}"></i>`).join("");
+ next.textContent=last?"Start exploring":"Next";skip.hidden=last;
+}
+function open(){
+ opener=document.activeElement;i=0;draw();el.hidden=false;document.documentElement.style.overflow="hidden";next.focus();
+}
+function close(){
+ el.hidden=true;document.documentElement.style.overflow="";seen();
+ if(opener&&opener.focus&&document.contains(opener))opener.focus();
+}
+const go=d=>{const n=i+d;if(n<0)return;if(n>=SL.length)return close();i=n;draw()};
+next.onclick=()=>go(1);skip.onclick=close;
+document.addEventListener("keydown",e=>{
+ if(el.hidden)return;
+ if(e.key==="Escape"){e.stopPropagation();close()}
+ else if(e.key==="ArrowRight")go(1);else if(e.key==="ArrowLeft")go(-1);
+ else if(e.key==="Tab"){const f=[skip,next].filter(b=>!b.hidden),a=document.activeElement;if(!f.includes(a)){e.preventDefault();f[0].focus()}else if(e.shiftKey&&a===f[0]){e.preventDefault();f[f.length-1].focus()}else if(!e.shiftKey&&a===f[f.length-1]){e.preventDefault();f[0].focus()}}
+},true);
+let x0=null;
+el.addEventListener("touchstart",e=>{x0=e.touches[0].clientX},{passive:true});
+el.addEventListener("touchend",e=>{if(x0==null)return;const dx=e.changedTouches[0].clientX-x0;x0=null;if(Math.abs(dx)>50)go(dx<0?1:-1)},{passive:true});
+["dGuide","fGuide"].forEach(id=>{const a=document.getElementById(id);if(a)a.addEventListener("click",e=>{e.preventDefault();setTimeout(open,0)})});
+let first=true;try{first=!localStorage.getItem(KEY)}catch(e){}
+if(first&&(!location.hash||location.hash==="#top"))open();
+})();
+</script>
+</body></html>
