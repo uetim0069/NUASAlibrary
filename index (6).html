@@ -1581,7 +1581,7 @@ if(first&&(!location.hash||location.hash==="#top"))open();
 })();
 </script>
 <script>
-/* Promo popup: Project AI Studio and CBT practice. Shows at most once every 3 days, after the welcome guide has been seen. */
+/* Promo popup: Project AI Studio and CBT practice. Shows on every page load. */
 (()=>{
 const KEY="nuasa_promo_v1",GAP=3*864e5,el=document.getElementById("ad");if(!el)return;
 const body=document.getElementById("adBody"),dots=document.getElementById("adDots"),go=document.getElementById("adGo"),nx=document.getElementById("adNext"),cl=document.getElementById("adClose");
@@ -1617,9 +1617,14 @@ document.addEventListener("keydown",e=>{
 let x0=null;
 el.addEventListener("touchstart",e=>{x0=e.touches[0].clientX},{passive:true});
 el.addEventListener("touchend",e=>{if(x0==null)return;const dx=e.changedTouches[0].clientX-x0;x0=null;if(Math.abs(dx)>50)step(dx<0?1:-1)},{passive:true});
-/* Only after the welcome guide has been seen, never on top of it or of another page, and not more than once every 3 days. */
-let due=false;try{const last=+localStorage.getItem(KEY)||0,welcomed=!!localStorage.getItem("nuasa_welcome_v1");due=welcomed&&Date.now()-last>GAP}catch(e){}
-if(due&&(!location.hash||location.hash==="#top"))setTimeout(()=>{const w=document.getElementById("wl");if(w&&!w.hidden)return;if(document.querySelector("#bk.show,#pjp.on,#pjp.show"))return;if(document.documentElement.style.overflow==="hidden")return;open()},3500);
+/* Shows on every page load. If the welcome guide or another dialog is open, it waits until that is closed. */
+let tries=0;
+const tick=()=>{
+ const w=document.getElementById("wl"),busy=(w&&!w.hidden)||document.querySelector("#bk.show,#pjp.on,#pjp.show");
+ if(busy){if(++tries<120)setTimeout(tick,500);return}
+ open();
+};
+setTimeout(tick,1500);
 })();
 </script>
 </body></html>
