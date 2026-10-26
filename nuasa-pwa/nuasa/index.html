@@ -392,6 +392,9 @@ footer{padding-top:64px}
 .thumb canvas{width:100%;height:100%;object-fit:cover;object-position:top;display:block}
 .thumb .play{position:absolute;inset:0;margin:auto;width:56px;height:56px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;display:grid;place-items:center;pointer-events:none}
 .th-ph{width:100%;height:100%;display:grid;place-items:center;color:var(--mut);font-size:20px;font-weight:700;letter-spacing:.04em}
+.rthumb{width:96px;flex:none;aspect-ratio:3/4;border-radius:10px;overflow:hidden;background:var(--line);display:grid;place-items:center}
+.rthumb img,.rthumb canvas{width:100%;height:100%;object-fit:cover;object-position:top;display:block}
+.rth{font-size:15px;font-weight:700;color:var(--mut);letter-spacing:.04em}
 </style></head>
 <body>
 <header><div class="w hd">
@@ -1364,6 +1367,46 @@ function renderVM(){
 const _rpxBase=rpx;
 rpx=function(){_rpxBase();renderVM()};
 
+/* ---- Homepage "Recently published": thumbnail on every row, no Preview button ---- */
+const RIMG=["png","jpg","jpeg","webp","gif"];
+function recRow(r){
+ const sv=offHas(r.id),e=ext(r),u=url(r);
+ let th;
+ if(r.external_url)th=`<div class="rthumb"><div class="rth">LINK</div></div>`;
+ else if(RIMG.includes(e)&&u)th=`<div class="rthumb"><img loading="lazy" alt="" src="${esc(u)}"></div>`;
+ else if(e==="pdf"&&u)th=`<div class="rthumb"><canvas data-rpdf="${esc(u)}"></canvas></div>`;
+ else th=`<div class="rthumb"><div class="rth">${esc((e||"FILE").toUpperCase())}</div></div>`;
+ return `<div class="rr" style="flex-wrap:wrap;gap:12px;align-items:center">${th}<div style="flex:1;min-width:160px"><div style="font-weight:600">${esc(r.title)}</div><div class="note">${esc(cn(r.course_id)[0]||"General")} · ${TY[r.type]||"Resource"}${r.session?" · "+esc(r.session):""}${r.file_size?" · "+fs(r.file_size):""}</div></div><div style="display:flex;gap:8px;flex-wrap:wrap">${r.external_url?"":`<button class="btn s" style="height:38px" onclick="offToggle('${esc(r.id)}')">${sv?"Remove offline":"Save offline"}</button>`}<button class="btn p" style="height:38px" onclick="get('${esc(r.id)}')">${r.external_url?"Open":"Download"}</button></div></div>`;
+}
+let rPdfLib=null;
+function rLoadPdf(){
+ if(window.pdfjsLib)return Promise.resolve(window.pdfjsLib);
+ if(rPdfLib)return rPdfLib;
+ const base="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/";
+ rPdfLib=new Promise((res,rej)=>{const s=document.createElement("script");s.src=base+"pdf.min.js";
+  s.onload=()=>{window.pdfjsLib.GlobalWorkerOptions.workerSrc=base+"pdf.worker.min.js";res(window.pdfjsLib)};
+  s.onerror=()=>rej(new Error("pdf.js"));document.head.appendChild(s)});
+ return rPdfLib;
+}
+async function hydrateRecPdfs(){
+ const cs=[...document.querySelectorAll("canvas[data-rpdf]:not([data-done])")];
+ if(!cs.length)return;
+ let lib=null;try{lib=await rLoadPdf()}catch(e){}
+ for(const c of cs){
+  c.dataset.done="1";
+  if(!lib){c.outerHTML='<div class="rth">PDF</div>';continue}
+  try{
+   const pdf=await lib.getDocument(c.dataset.rpdf).promise;
+   const pg=await pdf.getPage(1);
+   const v0=pg.getViewport({scale:1});
+   const vp=pg.getViewport({scale:240/v0.width});
+   c.width=vp.width;c.height=vp.height;
+   await pg.render({canvasContext:c.getContext("2d"),viewport:vp}).promise;
+  }catch(e){c.outerHTML='<div class="rth">PDF</div>'}
+ }
+}
+function rrec(){const el=$("#rec"),sec=$("#latest");if(!el||!sec)return;sec.style.display=S.res.length?"":"none";el.innerHTML=S.res.slice(0,recN).map(recRow).join("")+(S.res.length>recN?'<button class="btn s" id="recMore" style="margin-top:12px;width:100%">Show more</button>':"");hydrateRecPdfs();const b=$("#recMore");if(b)b.onclick=()=>{recN+=12;rrec()}}
+
 load();rc();
 /* admin */
 S.pending=[];let bulk=[];
@@ -1641,7 +1684,7 @@ $("#dPj").onclick=e=>{e.preventDefault();if(typeof od==="function")od(false);pjO
 /* ---------- Home feed, file manager, offline files ---------- */
 function rrow(r,sc){const sv=offHas(r.id);return `<div class="rr" style="flex-wrap:wrap;gap:8px"><div style="flex:1;min-width:180px"><div style="font-weight:600">${esc(r.title)}</div><div class="note">${sc?esc(cn(r.course_id)[0]||"General")+" · ":""}${TY[r.type]||"Resource"}${r.session?" · "+esc(r.session):""}${r.file_size?" · "+fs(r.file_size):""} · ${(r.downloads||0).toLocaleString()} downloads${sv?" · Saved offline":""}</div></div>${r.external_url?"":`<button class="btn s" style="height:38px" onclick="pv('${esc(r.id)}')">Preview</button><button class="btn s" style="height:38px" onclick="offToggle('${esc(r.id)}')">${sv?"Remove offline":"Save offline"}</button>`}<button class="btn p" style="height:38px" onclick="get('${esc(r.id)}')">${r.external_url?"Open":"Download"}</button></div>`}
 let recN=8;
-function rrec(){const el=$("#rec"),sec=$("#latest");if(!el||!sec)return;sec.style.display=S.res.length?"":"none";el.innerHTML=S.res.slice(0,recN).map(r=>rrow(r,1)).join("")+(S.res.length>recN?'<button class="btn s" id="recMore" style="margin-top:12px;width:100%">Show more</button>':"");const b=$("#recMore");if(b)b.onclick=()=>{recN+=12;rrec()}}
+
 
 /* admin: file manager */
 const MF={q:"",f:"all",sel:new Set()};
