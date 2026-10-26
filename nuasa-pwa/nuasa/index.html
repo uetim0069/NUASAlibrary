@@ -1404,6 +1404,75 @@ async function hydrateRecPdfs(){
 }
 function rrec(){const el=$("#rec"),sec=$("#latest");if(!el||!sec)return;sec.style.display=S.res.length?"":"none";el.innerHTML=S.res.slice(0,recN).map(recRow).join("")+(S.res.length>recN?'<button class="btn s" id="recMore" style="margin-top:12px;width:100%">Show more</button>':"");hydrateRecPdfs();const b=$("#recMore");if(b)b.onclick=()=>{recN+=12;rrec()}}
 
+/* ---- Profiles: view and edit photo, name and bio ---- */
+let pfBlob=null;
+function avHTML(p,size){
+ const n=(p&&p.full_name)||((S.user&&S.user.email)||"").split("@")[0]||"Student";
+ const st=`width:${size}px;height:${size}px;border-radius:50%;flex:none;display:block;`;
+ if(p&&p.avatar_path)return `<img alt="" src="${esc(pub(p.avatar_path))}" style="${st}object-fit:cover">`;
+ const ini=n.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase()||"N";
+ return `<span style="${st}display:grid;place-items:center;background:var(--g);color:#04130a;font:800 ${Math.round(size*.38)}px var(--d)">${esc(ini)}</span>`;
+}
+function squareJpeg(file,size){
+ return new Promise((res,rej)=>{
+  const img=new Image(),u=URL.createObjectURL(file);
+  img.onload=()=>{const c=document.createElement("canvas");c.width=c.height=size;
+   const s=Math.min(img.width,img.height);
+   c.getContext("2d").drawImage(img,(img.width-s)/2,(img.height-s)/2,s,s,0,0,size,size);
+   URL.revokeObjectURL(u);c.toBlob(b=>b?res(b):rej(new Error("encode")),"image/jpeg",0.88)};
+  img.onerror=()=>{URL.revokeObjectURL(u);rej(new Error("load"))};
+  img.src=u;
+ });
+}
+function openProfile(){
+ if(!S.user)return openAuth("in");
+ const p=S.profile||{},em=S.user.email||"";
+ pfBlob=null;
+ openModal(mh("Your profile","Change your photo, name and bio.")+`<div class="form" style="border:0;padding:18px 0 0;background:none">
+  <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap"><span id="pfAv">${avHTML(p,88)}</span>
+   <div style="display:grid;gap:8px"><input id="pfPhoto" type="file" accept="image/*" hidden><button class="btn s" id="pfPick" type="button">Change photo</button><span class="note">JPG or PNG. Shown as a circle.</span></div></div>
+  <label>Full name<input class="inp" id="pfName" maxlength="60" value="${esc(p.full_name||"")}"></label>
+  <label>Email<input class="inp" value="${esc(em)}" disabled></label>
+  <label>Bio<textarea class="inp" id="pfBio" rows="3" maxlength="200" style="height:auto;padding:10px 14px">${esc(p.bio||"")}</textarea></label>
+  <p class="note" id="pfErr" style="color:var(--r)"></p>
+  <button class="btn p" id="pfSave" type="button">Save profile</button></div>`);
+ $("#pfPick").onclick=()=>$("#pfPhoto").click();
+ $("#pfPhoto").onchange=async e=>{
+  const f=e.target.files[0];if(!f)return;
+  if(!/^image\//.test(f.type))return $("#pfErr").textContent="Choose an image file.";
+  try{pfBlob=await squareJpeg(f,256);
+   $("#pfAv").innerHTML=`<img alt="" src="${URL.createObjectURL(pfBlob)}" style="width:88px;height:88px;border-radius:50%;object-fit:cover;display:block">`;
+   $("#pfErr").textContent="";
+  }catch(err){$("#pfErr").textContent="That image could not be read. Try another."}
+ };
+ $("#pfSave").onclick=saveProfile;
+}
+async function saveProfile(){
+ const err=m=>$("#pfErr").textContent=m;err("");
+ const name=$("#pfName").value.trim(),bio=$("#pfBio").value.trim();
+ if(!name)return err("Enter your name.");
+ if(!sb)return err("Profiles are not connected yet.");
+ const b=$("#pfSave");b.disabled=true;b.textContent="Saving...";
+ try{
+  const old=S.profile&&S.profile.avatar_path||null;
+  const patch={full_name:name,bio:bio||null};
+  if(pfBlob){
+   const path=`${S.user.id}/avatar-${Date.now()}.jpg`;
+   const r=await upFile(path,new File([pfBlob],"avatar.jpg",{type:"image/jpeg"}),p=>b.textContent="Uploading "+p+"%");
+   if(r&&r.error)throw r.error;
+   patch.avatar_path=path;
+  }
+  const {error}=await sb.from("profiles").update(patch).eq("id",S.user.id);
+  if(error)throw error;
+  if(patch.avatar_path&&old)sb.storage.from(BUCKET).remove([old]).catch(()=>{});
+  S.profile={...(S.profile||{}),...patch};
+  menuAcct();closeModal();toast("Profile saved.");
+ }catch(e){
+  b.disabled=false;b.textContent="Save profile";
+  err(e&&e.message?"Could not save: "+e.message:"Could not save. Try again.");
+ }
+}
+
 load();rc();
 /* admin */
 S.pending=[];let bulk=[];
@@ -1754,7 +1823,7 @@ addEventListener("online",()=>{offBar();load()});addEventListener("offline",offB
 function menuAcct(){const el=$("#mAcct");if(!el)return;const u=S.user;
  if(!u)el.innerHTML='<div class="rl" style="flex:1 1 100%;white-space:normal;font-size:14px;line-height:1.45;color:var(--fg)">Sign in to upload files, take CBTs and use the Project AI.</div><button class="btn p" id="mSign" style="flex:1 1 100%;height:42px">Sign in</button>';
  else{const n=(S.profile&&S.profile.full_name)||(u.email||"").split("@")[0]||"Student",ini=n.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase()||"N";
-  el.innerHTML=`<span class="av">${esc(ini)}</span><div style="min-width:0;flex:1"><div class="nm">${esc(n)}</div><div class="rl">${isAdmin()?"Admin account":esc(u.email||"")}</div></div>`}
+  el.innerHTML=`${avHTML(S.profile,42)}<div style="min-width:0;flex:1"><div class="nm">${esc(n)}</div><div class="rl">${isAdmin()?"Admin account":esc(u.email||"")}</div></div><button class="btn s" id="mProf" style="flex:1 1 100%;height:40px">Edit profile</button>`;$("#mProf").onclick=()=>{od(false);openProfile()}}
  const so=$("#dOut");if(so)so.style.display=u?"":"none";const ms=$("#mSign");if(ms)ms.onclick=()=>{od(false);$("#authBtn").click()}}
 $("#dOut").onclick=e=>{e.preventDefault();od(false);$("#authBtn").click()};
 function menuOff(){const n=Object.keys(offMeta()).length,b=$("#dOffN");if(b){b.textContent=n||"";b.hidden=!n}}
