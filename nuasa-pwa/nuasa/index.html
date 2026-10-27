@@ -615,7 +615,7 @@ footer{border-top:1px solid color-mix(in srgb,var(--g) 18%,var(--line));backgrou
 
 <section class="sec" id="classes" style="padding-top:0"><div class="w">
   <div class="sh"><h2>Professional Certifications.</h2><p>Choose a study center for ATS, ICAN or CITN. Video lessons and study materials for each level are added there. Free for now.</p></div>
-  <div class="tools"><div class="seg" id="clx"></div><div class="seg" id="cll" style="flex-wrap:wrap"></div><button class="btn p" id="clAdd" style="display:none;margin-left:auto">Add class</button></div><div id="clh"></div><div class="cg" id="clg"></div>
+  <div class="tools"><div class="seg" id="clx"></div><div class="seg" id="cll" style="flex-wrap:wrap"></div><button class="btn p" id="clAdd" style="display:none;margin-left:auto">Upload video or materials</button></div><div id="clh"></div><div class="cg" id="clg"></div>
 </div></section>
 
 <section class="sec" id="opps" style="padding-top:0"><div class="w">
@@ -1168,8 +1168,11 @@ async function upFile(path,file,onPct){
    onProgress:(a,t)=>{if(onPct)onPct(Math.min(100,Math.floor(a/t*100)))},onSuccess:ok,onError:no}).start()});
   return {error:null}
  }catch(e){
-  let m="";try{m=JSON.parse(e.originalResponse.getBody()).message}catch(_){}
-  return {error:{message:m||"Upload failed. Check your connection and try again."}}
+  let m="",st=0;try{st=e.originalResponse.getStatus();m=JSON.parse(e.originalResponse.getBody()).message}catch(_){}
+  console.warn("Resumable upload failed",st,m,e);
+  /* fallback: one plain upload of the whole file */
+  try{const r=await sb.storage.from(BUCKET).upload(path,file,{contentType:file.type||"application/octet-stream"});if(!r.error){if(onPct)onPct(100);return {error:null}}m=m||r.error.message;console.warn("Plain upload failed",r.error)}catch(e2){console.warn("Plain upload failed",e2)}
+  return {error:{message:(m||"Upload failed. Check your connection and try again.")+(st?" (code "+st+")":"")}}
  }finally{try{wl&&wl.release()}catch(e){}}
 }
 const TY={past_question:"Past question",lecture_note:"Lecture note",textbook:"Textbook",handout:"Handout",assignment:"Assignment",video:"Video"};
@@ -1425,7 +1428,7 @@ const pub=p=>p&&sb?sb.storage.from(BUCKET).getPublicUrl(p).data.publicUrl:"";
 async function loadPrep(){if(!sb)return;try{const {data,error}=await sb.from("prep_classes").select("*").order("created_at",{ascending:false});S.prep=data||[];prepErr=!!error}catch(e){prepErr=true}}
 function rpx(){const g=$("#clg");if(!g)return;const lv=LVLS[pxe]||[];
  $("#clx").innerHTML=["ATS","ICAN","CITN"].map(k=>`<button class="${pxe===k?"on":""}" data-pxe="${k}">${k} Study Center</button>`).join("");
- $("#clh").innerHTML=`<p class="note" style="margin:0 0 16px"><b style="color:var(--fg)">${pxe} Study Center</b> · ${esc(CENTERS[pxe])}. Levels: ${LVLS[pxe].join(", ")}. Videos and study materials are uploaded here.</p>`;
+ $("#clh").innerHTML=`<p class="note" style="margin:0 0 16px"><b style="color:var(--fg)">${pxe} Study Center</b> · ${esc(CENTERS[pxe])}. Levels: ${LVLS[pxe].join(", ")}. Videos and study materials are uploaded here.</p>${isAdmin()?`<button class="btn p" data-pxadd style="margin:-4px 0 16px">Upload to ${pxe} Study Center</button>`:""}`;
  $("#cll").innerHTML=lv.length?["all",...lv].map(l=>`<button class="${pxl===l?"on":""}" data-pxl="${esc(l)}">${l==="all"?"All levels":esc(l)}</button>`).join(""):"";
  $("#clAdd").style.display=isAdmin()?"":"none";
  const L=S.prep.filter(p=>p.exam===pxe&&(pxl==="all"||p.level===pxl));
@@ -1433,7 +1436,7 @@ function rpx(){const g=$("#clg");if(!g)return;const lv=LVLS[pxe]||[];
   <div><div class="c" style="font-size:18px">${esc(p.title)}</div><div class="note">${esc(p.paper||"")}</div></div>${p.description?`<p class="note" style="font-size:14px">${esc(p.description)}</p>`:""}
   <div class="row">${p.video_url||p.video_path?`<button class="btn p" data-pxw="${esc(p.id)}">Watch</button>`:""}${p.material_path?`<button class="btn s" data-pxm="${esc(p.id)}">Materials</button>`:""}${isAdmin()?`<button class="btn s dng" data-pxd="${esc(p.id)}">Delete</button>`:""}</div></div>`).join("")
  :`<div class="card" style="padding:32px;grid-column:1/-1;text-align:center"><b>${prepErr?"Classes are not set up yet":"Nothing in the "+pxe+" Study Center yet"}</b><p class="mut" style="margin-top:6px">${prepErr?"Create the prep_classes table in Supabase.":"Videos and study materials will be uploaded here soon."}</p></div>`}
-const embed=u=>{let m;if(m=u.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/|live\/))([\w-]{11})/))return "https://www.youtube-nocookie.com/embed/"+m[1];if(m=u.match(/vimeo\.com\/(\d+)/))return "https://player.vimeo.com/video/"+m[1];if(m=u.match(/drive\.google\.com\/file\/d\/([\w-]+)/))return `https://drive.google.com/file/d/${m[1]}/preview`;return null};
+const embed=u=>{let m;if(/youtube\.com\/playlist/.test(u)&&(m=u.match(/[?&]list=([\w-]+)/)))return "https://www.youtube-nocookie.com/embed/videoseries?list="+m[1];if(m=u.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/|live\/))([\w-]{11})/))return "https://www.youtube-nocookie.com/embed/"+m[1];if(m=u.match(/vimeo\.com\/(\d+)/))return "https://player.vimeo.com/video/"+m[1];if(m=u.match(/drive\.google\.com\/file\/d\/([\w-]+)/))return `https://drive.google.com/file/d/${m[1]}/preview`;return null};
 async function saveUrl(u,name){try{const b=await(await fetch(u)).blob(),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),5e3);toast("Download started.")}catch(e){window.open(u,"_blank","noopener")}}
 const matName=p=>p.material_name||"materials."+((p.material_path||"").split(".").pop()||"pdf");
 function watch(p){const lc=p.video_path?`<video controls playsinline controlsList="nodownload" src="${esc(pub(p.video_path))}" style="width:100%;border-radius:12px;background:#000;max-height:70vh"></video>`:embed(p.video_url)?`<iframe src="${esc(embed(p.video_url))}" style="width:100%;aspect-ratio:16/9;border:0;border-radius:12px;background:#000" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen title="Class video"></iframe>`:`<p class="mut" style="padding:24px 0">This video opens on its own site.</p><a class="btn p" href="${esc(p.video_url)}" target="_blank" rel="noopener">Open video</a>`;
@@ -1442,7 +1445,7 @@ function openPrepForm(){openModal(mh("Add a class")+`<div class="form" style="bo
  <label>Paper or subject<input class="inp" id="pfP" maxlength="120" placeholder="e.g. Financial Reporting"></label><label>Lesson title<input class="inp" id="pfT" maxlength="150" placeholder="e.g. IAS 16, Property Plant and Equipment"></label><label>Description (optional)<textarea class="inp" id="pfD" rows="3" maxlength="600" style="height:auto;padding:10px 14px"></textarea></label>
  <label>Video link (YouTube, Vimeo or Google Drive)<input class="inp" id="pfV" type="url" placeholder="https://youtu.be/..."></label><label>Or upload a video file (up to 50 MB)<input class="inp" id="pfVF" type="file" accept="video/*" style="height:auto;padding:10px 14px"></label>
  <label>Study materials (PDF, Word or PowerPoint, up to ${MAX_MB} MB)<input class="inp" id="pfM" type="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx" style="height:auto;padding:10px 14px"></label><p class="note" id="pfErr" style="color:var(--r)"></p><button class="btn p" id="pfGo">Publish class</button></div>`);
- const lv=()=>$("#pfL").innerHTML=LVLS[$("#pfE").value].map(l=>`<option>${l}</option>`).join("");lv();$("#pfE").onchange=lv;
+ const lv=()=>$("#pfL").innerHTML=LVLS[$("#pfE").value].map(l=>`<option>${l}</option>`).join("");lv();if(pxl!=="all"&&LVLS[$("#pfE").value].includes(pxl))$("#pfL").value=pxl;$("#pfE").onchange=lv;
  $("#pfGo").onclick=async()=>{const er=m=>$("#pfErr").textContent=m,title=$("#pfT").value.trim(),vu=$("#pfV").value.trim(),vf=$("#pfVF").files[0],mf=$("#pfM").files[0];er("");
   if(!title)return er("Give the lesson a title.");if(!vu&&!vf&&!mf)return er("Add a video, a video link or study materials.");if(vu&&!/^https?:\/\//i.test(vu))return er("The video link must start with https://");
   if(vf&&vf.size>50*1048576)return er("The video file is over 50 MB. Upload it to YouTube or Drive and paste the link instead.");if(mf&&mf.size>MAX_MB*1048576)return er(`The materials file is over ${MAX_MB} MB.`);
@@ -1451,7 +1454,7 @@ function openPrepForm(){openModal(mh("Add a class")+`<div class="form" style="bo
   try{if(vf)row.video_path=await up(vf);if(mf){row.material_path=await up(mf);row.material_name=mf.name}}catch(e){b.disabled=false;b.textContent="Publish class";return er(e.message)}
   const {error}=await sb.from("prep_classes").insert(row);if(error){b.disabled=false;b.textContent="Publish class";return er(error.message)}closeModal();toast("Class published.");await loadPrep();rpx()}}
 document.addEventListener("click",async e=>{const g=a=>e.target.closest(`[data-${a}]`)?.dataset[a],ex=g("pxe"),lv=g("pxl"),w=g("pxw"),m=g("pxm"),d=g("pxd");
- if(ex){pxe=ex;pxl="all";rpx()}if(lv){pxl=lv;rpx()}if(e.target.closest("#clAdd"))openPrepForm();
+ if(ex){pxe=ex;pxl="all";rpx()}if(lv){pxl=lv;rpx()}if(e.target.closest("#clAdd,[data-pxadd]"))openPrepForm();
  if(w)watch(S.prep.find(x=>x.id===w));if(m){const p=S.prep.find(x=>x.id===m);saveUrl(pub(p.material_path),matName(p))}
  if(d){if(!confirm("Delete this class and its files?"))return;const p=S.prep.find(x=>x.id===d),fl=[p.video_path,p.material_path].filter(Boolean);if(fl.length)await sb.storage.from(BUCKET).remove(fl);const {error}=await sb.from("prep_classes").delete().eq("id",d);if(error)return toast(error.message);toast("Deleted.");await loadPrep();rpx()}});
 
