@@ -539,6 +539,10 @@ footer{border-top:1px solid color-mix(in srgb,var(--g) 18%,var(--line));backgrou
 .pvph{height:100%;display:grid;place-content:center;gap:6px;text-align:center;background:linear-gradient(135deg,color-mix(in srgb,var(--g) 14%,var(--sub)),var(--sub));color:var(--fg)}
 .pvph b{font:800 28px var(--d);letter-spacing:-.03em;background:var(--gr);-webkit-background-clip:text;background-clip:text;color:transparent}.pvph span{font-size:12px;color:var(--mut)}
 .mg .rr .ft,#rec .rr .ft{margin-top:2px;margin-bottom:6px}
+
+@keyframes shim{to{background-position:-200% 0}}
+.pvx.ld{background:linear-gradient(100deg,var(--sub) 30%,color-mix(in srgb,var(--g) 14%,var(--sub)) 50%,var(--sub) 70%) 0 0/200% 100%;animation:shim 1.2s linear infinite}
+.pvdoc{height:68vh;overflow:auto;border:1px solid var(--line);border-radius:12px;background:#eceef1;padding:8px;-webkit-overflow-scrolling:touch}.pvdoc.pvw{background:#fff;padding:18px 22px;color:#111;line-height:1.55}.pvdoc.pvw img{max-width:100%}.pvdoc.pvw table{border-collapse:collapse}.pvdoc.pvw td,.pvdoc.pvw th{border:1px solid #ccc;padding:4px 8px}.pvpg{display:block;width:100%;height:auto;margin:0 auto 8px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.18)}.pvld{padding:30px 0;text-align:center}
 </style><script src="https://cdn.tailwindcss.com/3.4.17"></script>
 <script>tailwind.config={prefix:"tw-",corePlugins:{preflight:false},theme:{extend:{colors:{card:"var(--card)",sub:"var(--sub)",line:"var(--line)",mut:"var(--mut)",brand:"var(--g)"},fontFamily:{display:["var(--d)"]}}}}</script>
 </head>
@@ -1204,8 +1208,9 @@ function files(id){const c=C.find(x=>x[4]===id),L=S.res.filter(r=>r.course_id===
  openModal(mh(esc(c[0]),esc(c[1]))+'<div class="mg">'+N.map(n=>`<div class="rr"><div style="flex:1;min-width:0"><div style="font-weight:600">${esc(n.title)}</div><div class="note">NotebookLM</div></div><a class="btn s" style="height:38px" target="_blank" rel="noopener" href="${esc(n.notebook_url)}">Open notebook</a></div>`).join("")+
  (L.length?L.map(r=>rrow(r)).join(""):`<p class="mut" style="margin:18px 0">No files for this course yet. Be the first to share one.</p>`)+'</div>'+`<button class="btn s" data-up style="width:100%;margin-top:16px" onclick="closeModal()">Upload a resource</button>`,1)}
 function pv(id){const r=S.res.find(x=>x.id===id),u=r&&url(r);if(!u)return toast("This file is unavailable.");if(!navigator.onLine){if(offHas(id))return offOpen(id);return toast("You are offline. Previews need internet.")}const e=ext(r),c=cn(r.course_id);
- const f=["png","jpg","jpeg"].includes(e)?`<img src="${esc(u)}" alt="" style="width:100%;border-radius:12px">`:["pdf","doc","docx","ppt","pptx","xls","xlsx"].includes(e)?`<iframe src="https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(u)}" style="width:100%;height:68vh;border:1px solid var(--line);border-radius:12px;background:#fff" title="Preview"></iframe>`:`<p class="mut" style="padding:30px 0">No preview is available for this file type. Download it to open it.</p>`;
- openModal(mh(esc(r.title),esc(c[0]||""))+`<div style="margin-top:16px">${f}</div><div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap"><button class="btn p" onclick="get('${esc(r.id)}')">Download</button><button class="btn s" onclick="offToggle('${esc(r.id)}')">${offHas(r.id)?"Remove offline":"Save offline"}</button><a class="btn s" href="${esc(u)}" target="_blank" rel="noopener">Open in new tab</a>${c[4]?`<button class="btn s" onclick="files('${esc(c[4])}')">Back to files</button>`:""}</div>`,true)}
+ const f=["png","jpg","jpeg"].includes(e)?`<img src="${esc(u)}" alt="" style="width:100%;border-radius:12px">`:e==="pdf"?'<div id="pvPdf" class="pvdoc"><div class="note pvld">Loading preview…</div></div>':e==="docx"?'<div id="pvDocx" class="pvdoc pvw"><div class="note pvld">Loading preview…</div></div>':["doc","ppt","pptx","xls","xlsx"].includes(e)?gviewHtml(u):`<p class="mut" style="padding:30px 0">No preview is available for this file type. Download it to open it.</p>`;
+ openModal(mh(esc(r.title),esc(c[0]||""))+`<div style="margin-top:16px">${f}</div><div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap"><button class="btn p" onclick="get('${esc(r.id)}')">Download</button><button class="btn s" onclick="offToggle('${esc(r.id)}')">${offHas(r.id)?"Remove offline":"Save offline"}</button><a class="btn s" href="${esc(u)}" target="_blank" rel="noopener">Open in new tab</a>${c[4]?`<button class="btn s" onclick="files('${esc(c[4])}')">Back to files</button>`:""}</div>`,true);
+ if(e==="pdf")pvPdf($("#pvPdf"),u);else if(e==="docx")pvDocx($("#pvDocx"),u)}
 async function get(id){const r=S.res.find(x=>x.id===id),u=r&&url(r);if(!u)return toast("This file is unavailable.");
  if(!r.external_url){if(offHas(id)&&await offOpen(id))return;if(!navigator.onLine)return toast("You are offline. Save files while you have internet to read them later.")}
  if(r.external_url)window.open(u,"_blank","noopener");else{try{const b=await(await fetch(u)).blob(),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=r.title.replace(/[^\w\- ]+/g,"").trim()+"."+ext(r);document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),5e3);toast("Download started.")}catch(e){window.open(u,"_blank","noopener")}}
@@ -1274,8 +1279,8 @@ function openUpload(){if(!sb)return toast("Library service is not reachable.");i
   if(!title)return er("Give your resource a title.");if($("#uLvl").value!=="0"&&!$("#uCrs").value)return er("Pick a course.");if(src==="file"&&!f)return er("Choose a file to upload.");
   if(src==="file"&&f.size>MAX_MB*1048576)return er(`That file is over ${MAX_MB} MB.`);if(src==="link"&&!/^https?:\/\//i.test(link))return er("Paste a full link starting with https://");
   const b=$("#uGo");b.disabled=true;b.textContent="Uploading...";const row={course_id:$("#uCrs").value||null,title,type:$("#uType").value,session:$("#uSes").value,uploaded_by:S.user.id,status:isAdmin()?"approved":"pending"};
-  if(src==="file"){const path=`${S.user.id}/${Date.now()}-${f.name.replace(/[^\w.\-]+/g,"_")}`,up=await upFile(path,f,p=>{b.textContent="Uploading "+p+"%";b.style.setProperty("--p",p+"%")});if(up.error){b.disabled=false;b.textContent="Submit";b.style.removeProperty("--p");return er(up.error.message)}row.file_path=path;row.file_size=f.size}else row.external_url=link;
-  const ins=await sb.from("resources").insert(row);if(ins.error){b.disabled=false;b.textContent="Submit";return er(ins.error.message)}
+  if(src==="file"){const path=`${S.user.id}/${Date.now()}-${f.name.replace(/[^\w.\-]+/g,"_")}`,up=await upFile(path,f,p=>{b.textContent="Uploading "+p+"%";b.style.setProperty("--p",p+"%")});if(up.error){b.disabled=false;b.textContent="Submit";b.style.removeProperty("--p");return er(up.error.message)}row.file_path=path;row.file_size=f.size;b.textContent="Preparing preview...";const tp=await mkThumb(path,f,ext({file_path:f.name}));if(tp)row.thumb_path=tp}else row.external_url=link;
+  const ins=await insRes(row);if(ins.error){b.disabled=false;b.textContent="Submit";return er(ins.error.message)}
   closeModal();toast(isAdmin()?"Published to the library.":"Thanks! Your upload will appear once it's approved.");if(isAdmin())load()}}
 /* ---------- CBT simulation ---------- */
 const HK="nuasa_cbt_hist",PG="nuasa_cbt_prog",rd=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k));return v==null?d:v}catch(e){return d}},wrt=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
@@ -1476,6 +1481,8 @@ function radm(){const dl=S.res.reduce((s,r)=>s+(r.downloads||0),0);
  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:40px;flex-wrap:wrap"><h3 style="font-size:22px">Manage courses</h3><button class="btn p" id="crsAdd" style="height:38px">Add course</button></div><div style="height:6px"></div><p class="note">Fix a course code, title, level or semester. Files stay attached to the course.</p>
  <div class="card" style="margin-top:12px;max-height:380px;overflow:auto">${C.map(c=>`<div class="ar" style="border:0;border-bottom:1px solid var(--line);border-radius:0;background:none"><span class="note" style="width:70px;flex:none;font-weight:600">${esc(c[0])}</span><div style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c[1])}</div><span class="note" style="flex:none">${c[2]}L · S${c[3]}</span><button class="btn s" style="height:34px;padding:0 12px" data-cedit="${esc(c[4])}">Edit</button><button class="btn s dng" style="height:34px;padding:0 12px" data-cdel="${esc(c[4])}">Delete</button></div>`).join("")}</div>
  <h3 style="font-size:22px;margin:40px 0 12px">Waiting for review</h3><div style="display:grid;gap:10px">${S.pending.length?S.pending.map(r=>`<div class="ar" style="flex-wrap:wrap"><div style="flex:1;min-width:200px"><div style="font-weight:600">${esc(r.title)}</div><div class="note">${esc(cn(r.course_id)[0]||"General")} · ${TY[r.type]||""} · ${esc(r.session||"")} · by ${esc(r.profiles?.full_name||"a student")} · ${ago(r.created_at)}</div></div><button class="btn s" style="height:38px" data-prev="${esc(r.id)}">Preview</button><button class="btn p" style="height:38px" data-appr="${esc(r.id)}">Approve</button><button class="btn s dng" style="height:38px" data-rej="${esc(r.id)}">Reject</button></div>`).join(""):'<div class="card" style="padding:28px;text-align:center" ><span class="mut">Nothing waiting. You are all caught up.</span></div>'}</div>
+ <h3 style="font-size:22px;margin:40px 0 6px">Fast previews</h3><p class="note">Creates stored thumbnails for PDFs and images uploaded earlier, so cards load instantly for everyone. New uploads get one automatically.</p>
+ <div class="card" style="padding:16px;margin-top:12px;display:flex;gap:12px;align-items:center;flex-wrap:wrap"><button class="btn p" id="tbGo" style="height:38px">Create missing previews (${S.res.filter(r=>r.file_path&&!r.thumb_path&&["pdf","png","jpg","jpeg"].includes(ext(r))).length})</button><span class="note" id="tbMsg"></span></div>
  <h3 style="font-size:22px;margin:40px 0 6px">Manage files</h3><p class="note">Rename a file, move it to a course, or send it to ICAN or ATS classes. To clear out General / All: choose "General / All only", tick the files, pick where they go, then tap Move.</p>
  <div class="card" style="padding:16px;margin-top:12px;display:grid;gap:12px"><div class="tools"><input class="inp" id="mfQ" placeholder="Search files" style="flex:1;min-width:160px"><div class="seg" id="mfF"><button data-mf="all" class="on">All files</button><button data-mf="gen">General / All only</button></div></div>
  <div class="ag" style="grid-template-columns:1fr 1fr;align-items:center"><select class="inp" id="mfDest"></select><input class="inp" id="mfPaper" placeholder="Paper or subject (optional)" style="display:none" maxlength="120"></div>
@@ -1494,15 +1501,16 @@ function bkRender(){const l=$("#bkList");if(!l)return;const lb={queued:"Ready",u
 async function bkUpload(){if(!isAdmin())return;const gen=$("#bkLvl").value==="0",course=gen?null:$("#bkCrs").value;if(!gen&&!course)return toast("Pick a course first.");const todo=bulk.filter(b=>b.st==="queued"||b.st==="err");let ok=0;
  for(const b of todo){b.st="up";bkRender();const path=`${S.user.id}/${Date.now()}-${b.f.name.replace(/[^\w.\-]+/g,"_")}`,up=await upFile(path,b.f,p=>{const el=document.querySelector(`[data-bp="${bulk.indexOf(b)}"]`);if(el)el.textContent=p+"%"});
   if(up.error){b.st="err";b.err=up.error.message;bkRender();continue}
-  const ins=await sb.from("resources").insert({course_id:course,title:(b.title||b.f.name).trim(),type:$("#bkType").value,session:$("#bkSes").value,file_path:path,file_size:b.f.size,uploaded_by:S.user.id,status:"approved"});
-  if(ins.error){await sb.storage.from(BUCKET).remove([path]);b.st="err";b.err=ins.error.message;bkRender();continue}b.st="done";ok++;bkRender()}
+  const tp=await mkThumb(path,b.f,ext({file_path:b.f.name})),row={course_id:course,title:(b.title||b.f.name).trim(),type:$("#bkType").value,session:$("#bkSes").value,file_path:path,file_size:b.f.size,uploaded_by:S.user.id,status:"approved"};if(tp)row.thumb_path=tp;
+  const ins=await insRes(row);
+  if(ins.error){await sb.storage.from(BUCKET).remove(tp?[path,tp]:[path]);b.st="err";b.err=ins.error.message;bkRender();continue}b.st="done";ok++;bkRender()}
  const f=todo.length-ok;toast(f?`${ok} uploaded, ${f} failed. Hover "Failed" for the reason.`:`${ok} file${ok===1?"":"s"} published to the library.`);await load();radm()}
 document.addEventListener("click",async e=>{const g=a=>e.target.closest(`[data-${a}]`)?.dataset[a],ap=g("appr"),rj=g("rej"),dl=g("del"),pv=g("prev");
  const nd=g("nmdel");if(nd){if(!confirm("Remove this notebook from the site? The notebook itself stays in NotebookLM."))return;const {error}=await sb.from("notebooks").delete().eq("id",nd);if(error)return toast(error.message);toast("Removed.");await load();radm();return}
  if(pv){const r=S.pending.find(x=>x.id===pv);window.open(url(r),"_blank","noopener")}
  if(ap){const {error}=await sb.from("resources").update({status:"approved"}).eq("id",ap);if(error)return toast(error.message);toast("Approved. It is live now.");await load();await loadPending();radm()}
  if(rj||dl){const id=rj||dl;if(!confirm(rj?"Reject and delete this upload?":"Delete this resource permanently?"))return;const r=[...S.pending,...S.res].find(x=>x.id===id);
-  if(r&&r.file_path)await sb.storage.from(BUCKET).remove([r.file_path]);const {error}=await sb.from("resources").delete().eq("id",id);if(error)return toast(error.message);toast("Removed.");await load();await loadPending();radm()}});
+  if(r&&r.file_path)await sb.storage.from(BUCKET).remove(r.thumb_path?[r.file_path,r.thumb_path]:[r.file_path]);const {error}=await sb.from("resources").delete().eq("id",id);if(error)return toast(error.message);toast("Removed.");await load();await loadPending();radm()}});
 document.addEventListener("click",async e=>{const ed=e.target.closest("[data-cedit]"),sv2=e.target.closest("[data-csave]");
  if(ed&&isAdmin()){const c=C.find(x=>String(x[4])===ed.dataset.cedit);if(!c)return;
   openModal(mh("Edit course")+`<div class="form" style="border:0;padding:18px 0 0;background:none"><label>Course code<input class="inp" id="ceC" maxlength="20" value="${esc(c[0])}"></label><label>Course title<input class="inp" id="ceT" maxlength="150" value="${esc(c[1])}"></label>
@@ -1726,12 +1734,65 @@ $("#dPj").onclick=e=>{e.preventDefault();if(typeof od==="function")od(false);pjO
 
 
 /* ---------- Home feed, file manager, offline files ---------- */
-function pvBox(r){const u=url(r),e=ext(r),ok=!r.external_url&&u&&navigator.onLine&&!(navigator.connection&&navigator.connection.saveData);let h="";
- if(ok&&["png","jpg","jpeg"].includes(e))h=`<img src="${esc(u)}" alt="" loading="lazy">`;
- else if(ok&&["pdf","doc","docx","ppt","pptx","xls","xlsx"].includes(e))h=`<iframe src="https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(u)}" loading="lazy" tabindex="-1" scrolling="no" title="Preview of ${esc(r.title)}"></iframe>`;
- if(!h)h=`<div class="pvph"><b>${r.external_url?"LINK":esc(e.length<=5?e.toUpperCase():"FILE")}</b><span>${r.external_url?"Opens in a new tab":"No preview"}</span></div>`;
- return `<div class="pvx${r.external_url?" ext":""}" ${r.external_url?"":`onclick="pv('${esc(r.id)}')" role="button" aria-label="Enlarge preview of ${esc(r.title)}"`}>${h}</div>`}
+/* fast previews: small cached thumbnails, rendered one by one as cards scroll into view */
+const PVC="nuasa_pvc2";let pvm={};try{pvm=JSON.parse(localStorage.getItem(PVC)||"{}")}catch(e){}
+const pvSave=()=>{try{const k=Object.keys(pvm);if(k.length>36)k.slice(0,k.length-36).forEach(x=>delete pvm[x]);localStorage.setItem(PVC,JSON.stringify(pvm))}catch(e){pvm={}}};
+let pvLib=null,pvQ=[],pvBusy=0;
+const pvLoad=()=>pvLib||(pvLib=new Promise((res,rej)=>{const sc=document.createElement("script");sc.src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";sc.onload=()=>{pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";res(pdfjsLib)};sc.onerror=rej;document.head.appendChild(sc)}));
+const pvPaint=(el,d)=>{el.innerHTML='<img src="'+d+'" alt="" decoding="async">';el.classList.remove("ld")};
+const pvDone=(el,d,k)=>{pvm[k]=d;pvSave();pvPaint(el,d)};
+async function pvRender(el){const k=el.dataset.k;if(pvm[k])return pvPaint(el,pvm[k]);
+ if(el.dataset.pdf){const lib=await pvLoad(),doc=await lib.getDocument({url:el.dataset.pdf,rangeChunkSize:65536,disableAutoFetch:true,disableStream:true}).promise,pg=await doc.getPage(1),v0=pg.getViewport({scale:1}),v=pg.getViewport({scale:360/v0.width}),cv=document.createElement("canvas");cv.width=v.width;cv.height=v.height;await pg.render({canvasContext:cv.getContext("2d"),viewport:v}).promise;pvDone(el,cv.toDataURL("image/jpeg",.6),k);doc.destroy();return}
+ const im=new Image();im.crossOrigin="anonymous";im.decoding="async";im.src=el.dataset.img;await im.decode();const w=Math.min(360,im.naturalWidth),cv=document.createElement("canvas");cv.width=w;cv.height=Math.round(im.naturalHeight*w/im.naturalWidth);cv.getContext("2d").drawImage(im,0,0,cv.width,cv.height);pvDone(el,cv.toDataURL("image/jpeg",.65),k)}
+function pvPump(){while(pvBusy<2&&pvQ.length){const el=pvQ.shift();pvBusy++;pvRender(el).catch(()=>{el.classList.remove("ld");if(el.dataset.img)el.innerHTML='<img src="'+el.dataset.img+'" alt="" loading="lazy">';else el.innerHTML='<div class="pvph"><b>PDF</b><span>Tap to preview</span></div>'}).finally(()=>{pvBusy--;pvPump()})}}
+const pvIO=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){pvIO.unobserve(e.target);pvQ.push(e.target);pvPump()}}),{rootMargin:"300px"});
+let pvT;const pvScan=()=>{$$(".pvx[data-k]:not([data-o])").forEach(el=>{el.dataset.o=1;pvIO.observe(el)})};
+new MutationObserver(()=>{clearTimeout(pvT);pvT=setTimeout(pvScan,40)}).observe(document.body,{childList:true,subtree:true});
+function pvBox(r){const u=url(r),e=ext(r),ok=!r.external_url&&u&&navigator.onLine&&!(navigator.connection&&navigator.connection.saveData),k=r.id+"|"+(r.file_size||""),oc=`onclick="pv('${esc(r.id)}')" role="button" aria-label="Enlarge preview of ${esc(r.title)}"`;
+ if(r.external_url)return `<div class="pvx ext"><div class="pvph"><b>LINK</b><span>Opens in a new tab</span></div></div>`;
+ if(r.thumb_path&&sb)return `<div class="pvx" ${oc}><img src="${esc(thumbUrl(r))}" alt="" loading="lazy" decoding="async" onerror="this.outerHTML='<div class=&quot;pvph&quot;><b>${esc(e.toUpperCase().slice(0,5))}</b><span>Tap to preview</span></div>'"></div>`;
+ if(pvm[k])return `<div class="pvx" ${oc}><img src="${pvm[k]}" alt="" decoding="async"></div>`;
+ if(ok&&e==="pdf")return `<div class="pvx ld" data-k="${esc(k)}" data-pdf="${esc(u)}" ${oc}></div>`;
+ if(ok&&["png","jpg","jpeg"].includes(e))return `<div class="pvx ld" data-k="${esc(k)}" data-img="${esc(u)}" ${oc}></div>`;
+ return `<div class="pvx" ${oc}><div class="pvph"><b>${esc(e.length<=5?e.toUpperCase():"FILE")}</b><span>${["doc","docx","ppt","pptx","xls","xlsx"].includes(e)?"Tap to preview":"No preview"}</span></div></div>`}
 function rrow(r,sc){const sv=offHas(r.id);return `<div class="rr" style="flex-wrap:wrap;gap:8px">${pvBox(r)}<div style="flex:1;min-width:180px"><span class="ft">${r.external_url?"LINK":esc(ext(r).length<=5?ext(r).toUpperCase():"FILE")}</span><div style="font-weight:600">${esc(r.title)}</div><div class="note">${sc?esc(cn(r.course_id)[0]||"General")+" · ":""}${TY[r.type]||"Resource"}${r.session?" · "+esc(r.session):""}${r.file_size?" · "+fs(r.file_size):""} · ${(r.downloads||0).toLocaleString()} downloads${sv?" · Saved offline":""}</div></div>${r.external_url?"":`<button class="btn s" style="height:38px" onclick="pv('${esc(r.id)}')">Preview</button><button class="btn s" style="height:38px" onclick="offToggle('${esc(r.id)}')">${sv?"Remove offline":"Save offline"}</button>`}<button class="btn p" style="height:38px" onclick="get('${esc(r.id)}')">${r.external_url?"Open":"Download"}</button></div>`}
+
+/* ---------- Supabase-hosted thumbnails + local enlarged preview ---------- */
+const thumbUrl=r=>r.thumb_path&&sb?sb.storage.from(BUCKET).getPublicUrl(r.thumb_path).data.publicUrl:"";
+const gviewHtml=u=>`<iframe src="https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(u)}" style="width:100%;height:68vh;border:1px solid var(--line);border-radius:12px;background:#fff" title="Preview"></iframe>`;
+const thumbPathOf=p=>p.replace(/\.[^.\/]+$/,"")+".thumb.jpg";
+const canvasBlob=(cv,q)=>new Promise(ok=>cv.toBlob(ok,"image/jpeg",q));
+/* src: File/Blob or URL string. Returns a ~480px JPEG blob of a PDF's first page or of an image */
+async function thumbBlob(src,e){const W=480;
+ if(e==="pdf"){const lib=await pvLoad(),doc=await lib.getDocument(typeof src==="string"?{url:src,rangeChunkSize:65536,disableAutoFetch:true,disableStream:true}:{data:new Uint8Array(await src.arrayBuffer())}).promise,pg=await doc.getPage(1),v0=pg.getViewport({scale:1}),v=pg.getViewport({scale:W/v0.width}),cv=document.createElement("canvas");cv.width=v.width;cv.height=v.height;const cx=cv.getContext("2d");cx.fillStyle="#fff";cx.fillRect(0,0,cv.width,cv.height);await pg.render({canvasContext:cx,viewport:v}).promise;doc.destroy();return canvasBlob(cv,.72)}
+ if(["png","jpg","jpeg"].includes(e)){const im=new Image();im.crossOrigin="anonymous";im.decoding="async";const obj=typeof src==="string"?src:URL.createObjectURL(src);im.src=obj;try{await im.decode()}finally{if(typeof src!=="string")setTimeout(()=>URL.revokeObjectURL(obj),3e3)}const w=Math.min(W,im.naturalWidth),cv=document.createElement("canvas");cv.width=w;cv.height=Math.round(im.naturalHeight*w/im.naturalWidth);cv.getContext("2d").drawImage(im,0,0,cv.width,cv.height);return canvasBlob(cv,.75)}
+ return null}
+/* makes the thumbnail and stores it in the bucket next to the file; returns its path, or null (never throws) */
+async function mkThumb(path,src,e,upsert){try{const b=await thumbBlob(src,e);if(!b)return null;const tp=thumbPathOf(path),{error}=await sb.storage.from(BUCKET).upload(tp,b,{contentType:"image/jpeg",cacheControl:"31536000",upsert:!!upsert});return error?null:tp}catch(x){return null}}
+async function insRes(row){let r=await sb.from("resources").insert(row);if(r.error&&"thumb_path" in row&&/thumb_path/.test(r.error.message||"")){delete row.thumb_path;r=await sb.from("resources").insert(row)}return r}
+/* enlarged PDF preview: rendered here, page by page, with range requests, so page 1 shows almost at once */
+async function pvPdf(box,u){if(!box)return;
+ try{const lib=await pvLoad(),doc=await lib.getDocument({url:u,rangeChunkSize:131072}).promise,w=Math.max(280,box.clientWidth-16),dpr=Math.min(window.devicePixelRatio||1,2),n=Math.min(doc.numPages,40);
+  for(let i=1;i<=n;i++){if(!box.isConnected){doc.destroy();return}
+   const pg=await doc.getPage(i),v0=pg.getViewport({scale:1}),v=pg.getViewport({scale:w/v0.width*dpr}),cv=document.createElement("canvas");cv.width=v.width;cv.height=v.height;cv.className="pvpg";
+   if(i===1)box.innerHTML="";box.appendChild(cv);await pg.render({canvasContext:cv.getContext("2d"),viewport:v}).promise}
+  if(doc.numPages>n&&box.isConnected)box.insertAdjacentHTML("beforeend",`<p class="note" style="text-align:center;padding:10px">Showing the first ${n} of ${doc.numPages} pages. Download the file to read the rest.</p>`)}
+ catch(e){if(box.isConnected)box.outerHTML=gviewHtml(u)}}
+let mmLib=null;const mmLoad=()=>mmLib||(mmLib=new Promise((res,rej)=>{const sc=document.createElement("script");sc.src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.2/mammoth.browser.min.js";sc.onload=()=>res(window.mammoth);sc.onerror=rej;document.head.appendChild(sc)}));
+async function pvDocx(box,u){if(!box)return;
+ try{const [m,buf]=await Promise.all([mmLoad(),fetch(u).then(r=>{if(!r.ok)throw 0;return r.arrayBuffer()})]),out=await m.convertToHtml({arrayBuffer:buf}),d=new DOMParser().parseFromString(out.value,"text/html");
+  d.querySelectorAll("script,iframe,object,embed,style").forEach(n=>n.remove());d.querySelectorAll("*").forEach(n=>{[...n.attributes].forEach(a=>{if(/^on/i.test(a.name)||/^\s*javascript:/i.test(a.value))n.removeAttribute(a.name)})});d.querySelectorAll("a").forEach(a=>{a.target="_blank";a.rel="noopener"});
+  if(!box.isConnected)return;box.innerHTML=d.body.innerHTML||'<p class="mut">This document has no readable text.</p>'}
+ catch(e){if(box.isConnected)box.outerHTML=gviewHtml(u)}}
+/* admin: create thumbnails for files uploaded before this feature */
+document.addEventListener("click",async e=>{const b=e.target.closest("#tbGo");if(!b||!isAdmin())return;
+ const todo=S.res.filter(r=>r.file_path&&!r.thumb_path&&["pdf","png","jpg","jpeg"].includes(ext(r))),msg=$("#tbMsg");
+ if(!todo.length)return msg.textContent="Every PDF and image already has a fast preview.";
+ b.disabled=true;let ok=0,bad=0,why="";
+ for(const r of todo){msg.textContent=`Working… ${ok+bad} of ${todo.length}`;
+  const tp=await mkThumb(r.file_path,url(r),ext(r),true);if(!tp){bad++;why=why||"A thumbnail could not be stored (check the storage policy in the SQL file).";continue}
+  const {error}=await sb.from("resources").update({thumb_path:tp}).eq("id",r.id);if(error){bad++;why=error.message;if(/thumb_path/.test(error.message))break;continue}r.thumb_path=tp;ok++}
+ b.disabled=false;msg.textContent=`${ok} preview${ok===1?"":"s"} created${bad?`, ${bad} failed. ${why}`:"."}`;rrec();rc()});
 let recN=8;
 function rrec(){const el=$("#rec"),sec=$("#latest");if(!el||!sec)return;sec.style.display=S.res.length?"":"none";el.innerHTML=S.res.slice(0,recN).map(r=>rrow(r,1)).join("")+(S.res.length>recN?'<button class="btn s" id="recMore" style="margin-top:12px;width:100%">Show more</button>':"");const b=$("#recMore");if(b)b.onclick=()=>{recN+=12;rrec()}}
 
