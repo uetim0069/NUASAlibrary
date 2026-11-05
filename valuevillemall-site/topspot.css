@@ -1,0 +1,48 @@
+/* Top spots: announcement bar (every page) and advert slider (home) */
+.vbar{--bg:#0b5a35;position:relative;z-index:30;display:grid;grid-template-rows:0fr;transition:grid-template-rows .4s ease;background:var(--bg);color:#fff;font-size:14px;line-height:1.3}
+.vbar.in{grid-template-rows:1fr}.vbar.promo{--bg:#d9560f}.vbar.alert{--bg:#b3123f}
+.vbar-in{min-height:0;overflow:hidden}
+.vbar-c{display:flex;align-items:center;gap:6px;max-width:1200px;margin:auto;padding:0 10px;height:48px}
+.vbar-i{flex:1;min-width:0;height:100%;display:flex;align-items:center;gap:10px;background:none;border:0;color:inherit;font:inherit;text-align:left;cursor:pointer;padding:0 4px;transition:opacity .18s,transform .18s}
+.vbar-i.sw{opacity:0;transform:translateY(6px)}
+.vbar-img{flex:none;width:34px;height:34px;border-radius:8px;overflow:hidden;background:#fff3}.vbar-img img{width:100%;height:100%;object-fit:cover;display:block}
+.vbar-tx{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.vbar-tx b{font-weight:800;margin-right:8px}
+.vbar-m{flex:none;font-weight:700;font-size:12px;text-decoration:underline;opacity:.9}
+.vbar-a,.vbar-x{flex:none;width:30px;height:30px;border-radius:50%;border:0;background:#0003;color:#fff;font-size:18px;line-height:1;cursor:pointer;display:grid;place-items:center;padding:0}.vbar-a:hover,.vbar-x:hover{background:#0006}
+.vbar button:focus-visible{outline:2px solid #fff;outline-offset:2px}
+@media(max-width:560px){.vbar{font-size:13px}.vbar-m{display:none}.vbar-c{padding:0 8px;gap:4px}}
+/* details pop-up */
+.vmod{position:fixed;inset:0;z-index:120;background:#000c;display:grid;place-items:center;padding:16px;overflow:auto}
+.vmod-c{position:relative;width:min(460px,100%);background:var(--sf,#fff);color:var(--ink,#14231a);border:1px solid var(--ln,#ddd);border-top:5px solid #12803f;border-radius:18px;overflow:hidden;box-shadow:0 30px 80px #0008;animation:vmin .25s ease}
+.vmod-c.promo{border-top-color:#f26a1b}.vmod-c.alert{border-top-color:#e0245e}
+.vmod-c>img{display:block;width:100%;max-height:300px;object-fit:cover}
+.vmod-b{padding:20px 22px 24px}.vmod-b h3{margin:0 0 8px;font-size:22px;color:var(--hi,inherit)}.vmod-b p{margin:0 0 18px;color:var(--tx,inherit);white-space:pre-line}
+.vmod-x{position:absolute;top:10px;right:10px;z-index:2;width:34px;height:34px;border-radius:50%;border:0;background:#000a;color:#fff;font-size:20px;line-height:1;cursor:pointer}
+@keyframes vmin{from{opacity:0;transform:translateY(12px) scale(.98)}to{opacity:1;transform:none}}
+.annp{overflow:hidden}.annp-i{display:block;width:calc(100% + 56px);margin:-28px -28px 18px;max-height:260px;object-fit:cover}
+/* advert slider */
+.vad{max-width:1200px;margin:18px auto 0;padding:0 20px}
+.vad-v{position:relative;border-radius:26px;overflow:hidden;border:1px solid var(--ln);box-shadow:0 24px 70px #0004;touch-action:pan-y;background:#0b3d28;-webkit-user-select:none;user-select:none}
+.vad-v.sk{aspect-ratio:21/8;animation:vadsk 1.2s ease-in-out infinite alternate}@keyframes vadsk{from{opacity:.5}to{opacity:1}}
+.vad-t{display:flex;transition:transform .55s cubic-bezier(.22,.8,.22,1);will-change:transform}.vad-t.drag{transition:none}
+.vad-s{position:relative;flex:0 0 100%;min-width:0;aspect-ratio:21/8;display:flex;align-items:flex-end;color:#fff;text-decoration:none;background:linear-gradient(120deg,#0b5228,#12803f 55%,#073a1c);overflow:hidden;-webkit-user-drag:none}
+.vad-s img.bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none}
+.vad-s .wm{position:absolute;right:6%;top:50%;transform:translateY(-50%);width:clamp(120px,22vw,260px);opacity:.16;pointer-events:none}
+.vad-s:after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,#000d 0,#0008 40%,#0000 75%);pointer-events:none}
+.vad-c{position:relative;z-index:1;width:100%;padding:clamp(18px,4vw,48px);padding-bottom:clamp(46px,6vw,66px);display:grid;gap:10px;justify-items:start}
+.vad-c>*{max-width:640px}
+.vad-c h2{margin:0;font-size:clamp(24px,4.4vw,50px);line-height:1.05;letter-spacing:-1.2px;color:#fff;text-wrap:balance;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.vad-c p{margin:0;font-size:clamp(13px,1.5vw,17px);color:#e9f3ec;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.vad-b{display:inline-block;background:linear-gradient(180deg,#ff8a3d,#f26a1b);color:#fff;font:800 clamp(14px,1.6vw,17px) Bricolage Grotesque,Instrument Sans,sans-serif;padding:11px 26px;border-radius:999px;box-shadow:0 10px 26px #f26a1b66;margin-top:4px}
+.vad-n{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;border:0;background:#0007;color:#fff;font-size:28px;line-height:1;cursor:pointer;display:grid;place-items:center;padding:0 0 3px;backdrop-filter:blur(6px);opacity:0;transition:opacity .2s;z-index:2}.vad-pv{left:14px}.vad-nx{right:14px}
+.vad-v:hover .vad-n,.vad-n:focus-visible{opacity:1}.vad-n:hover{background:#000b}
+.vad-ctl{position:absolute;right:18px;bottom:16px;display:flex;gap:8px;align-items:center;z-index:2}
+.vad-d{display:flex;gap:7px;align-items:center;background:#0006;backdrop-filter:blur(6px);padding:8px 11px;border-radius:999px}.vad-d button{width:8px;height:8px;border-radius:50%;border:0;padding:0;background:#fff8;cursor:pointer;transition:width .25s,background .25s}.vad-d button.on{width:22px;border-radius:6px;background:#fff}
+.vad-p{width:30px;height:30px;border-radius:50%;border:0;background:#0006;color:#fff;cursor:pointer;font-size:10px;backdrop-filter:blur(6px);padding:0}
+.vad button:focus-visible,.vad a:focus-visible{outline:3px solid #ff8a3d;outline-offset:-3px}
+@media(hover:none){.vad-n{display:none}}
+@media(max-width:640px){.vad{padding:0 12px;margin-top:12px}.vad-v{border-radius:20px}.vad-v.sk,.vad-s{aspect-ratio:4/3}.vad-ctl{right:12px;bottom:12px}.vad-p{display:none}.vad-c{padding-bottom:48px}}
+@media(prefers-reduced-motion:reduce){.vad-t,.vbar,.vbar-i,.vmod-c{transition:none;animation:none}.vad-v.sk{animation:none}}
+#ann,#ads{display:none!important}
+.logo b{background:none!important;box-shadow:none!important;width:42px!important;height:42px!important;border-radius:0!important}.logo b img{width:100%;height:100%;display:block}
+.vbar.in~.strip{display:none!important}

@@ -1,0 +1,302 @@
+/* ValueVille MALL design system v4 — oraimo taste.
+   Loaded last on every page. Tokens come from /tokens.css (oraimo, status PARTIAL).
+   Light only. Outfit + Cairo. Lime brand orange is an accent/fill (always with dark text), black is the CTA.
+   Flat white surfaces, hairline #ddd borders, white-stage product imagery, no gradients, no glass, no dark mode. */
+
+html{color-scheme:only light;scroll-padding-top:120px}
+body{font-family:var(--ora-font-sans);font-size:var(--ora-text-base);line-height:1.5;background:var(--ora-bg);color:var(--ora-text);-webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%}
+h1,h2,h3,h4,.logo,.btn,.cat b,.pc h3,.feat strong,.pil b,.met b,.vad-c h2{font-family:var(--ora-font-sans)}
+h1,h2,h3{letter-spacing:-.01em;text-wrap:balance;color:var(--ora-text);font-weight:600}
+.w{padding-left:var(--gut);padding-right:var(--gut)}
+:focus-visible{outline:2px solid var(--ora-text);outline-offset:2px;border-radius:4px}
+::selection{background:var(--ora-lime);color:#111}
+#thm,.vv-thm{display:none!important}
+
+/* ---------- top strips: app bar + notice (dismissible) ---------- */
+.strip{display:none}
+.ora-app,.ora-note{font-size:13px;line-height:1.3}
+.ora-app{background:var(--ora-surface);border-bottom:1px solid var(--ln)}
+.ora-app .in,.ora-note .in{max-width:var(--ora-container);margin:auto;display:flex;align-items:center;gap:12px;padding:8px var(--gut)}
+.ora-app img{width:34px;height:34px;border-radius:8px;flex:none}
+.ora-app .tx{flex:1;min-width:0}.ora-app .tx b{display:block;font-weight:600;font-size:14px}.ora-app .tx span{display:block;color:var(--ora-text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ora-app .get{flex:none;border:0;border-radius:var(--ora-radius-pill);background:var(--ora-lime);color:#111;font:600 13px var(--ora-font-sans);padding:7px 18px;cursor:pointer;text-decoration:none}
+.ora-x{flex:none;width:28px;height:28px;border:0;background:none;color:var(--ora-icon-grey);cursor:pointer;display:grid;place-items:center;border-radius:50%}
+.ora-x:hover{background:#0000000d;color:var(--ora-text)}
+.ora-note{background:#fff;border-bottom:1px solid var(--ln);color:var(--ora-text)}
+.ora-note .in{justify-content:center;position:relative}.ora-note .tx{text-align:center}.ora-note .tx b{font-weight:600}
+.ora-note .ora-x{position:absolute;right:var(--gut);top:50%;transform:translateY(-50%)}
+
+/* ---------- header ---------- */
+.hd{background:#fff;border-bottom:1px solid var(--ln);box-shadow:none}
+.hd-in{gap:8px 14px;padding:10px var(--gut);max-width:var(--ora-container)}
+.logo{font-weight:700;font-size:20px;letter-spacing:-.02em;color:var(--ora-text);white-space:nowrap}
+.logo b{flex:none;border-radius:var(--ora-radius-md);background:none;box-shadow:none}
+.logo em{color:var(--ora-text);font-weight:300;margin-left:4px}
+.ic{min-width:44px;min-height:44px;justify-content:center;border-radius:var(--ora-radius-md);color:var(--ora-icon-grey);transition:color .15s}
+.ic:hover{background:none;color:var(--ora-text)}.ic span{font-size:11px;font-weight:500;color:var(--ora-text-muted)}
+.ic i{background:var(--ora-lime);color:#111;top:2px;right:4px;font-weight:600}
+.search{border-radius:var(--ora-radius-pill);background:var(--ora-surface);border:1px solid transparent;overflow:hidden}
+.search:focus-within{border-color:var(--ora-text);background:#fff;box-shadow:none}
+.search input,.search input:focus{border:0;box-shadow:none;background:none;border-radius:0;min-height:42px;font-size:15px;padding-left:18px;color:var(--ora-text)}
+.search button{background:var(--ora-text);color:#fff;min-height:42px;padding:0 22px;font-weight:600;border-radius:0}.search button:hover{background:#000}
+.res{background:#fff;border-color:var(--ln);border-radius:0 0 var(--ora-radius-md) var(--ora-radius-md);box-shadow:0 0 16px rgba(0,0,0,.10)}
+.res a{color:var(--ora-text);border-color:var(--ln)}.res a:hover{background:var(--ora-surface)}
+.burger b{background:var(--ora-text)}
+
+/* primary nav (like oraimo's 8-item row, with HOT marker) */
+.cats{background:#fff;border-top:1px solid var(--ln);border-bottom:1px solid var(--ln);overflow-x:auto;scrollbar-width:none}.cats::-webkit-scrollbar{display:none}
+.cats .w{display:flex;gap:26px;max-width:var(--ora-container)}
+.cats a{font-size:14px;font-weight:500;color:var(--ora-text);padding:12px 0;border-bottom:2px solid transparent;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.cats a:hover{border-color:var(--ora-lime);color:var(--ora-text)}
+.cats a .hot{background:var(--ora-hot);color:#fff;font-size:10px;font-weight:700;letter-spacing:.04em;padding:1px 5px;border-radius:3px;line-height:1.5}
+
+/* ---------- buttons & inputs ---------- */
+.btn{background:var(--ora-cta-bg);color:var(--ora-cta-text);min-height:46px;display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:var(--ora-radius-cta);padding:0 24px;font-weight:600;font-size:15px;box-shadow:none;transition:background-color .15s,color .15s}
+.btn:hover{background:var(--vv-green-dark);transform:none;box-shadow:none}.btn:active{transform:scale(.98)}
+.btn.ghost{background:#fff;color:var(--ora-text);border:1px solid var(--ora-text)}
+.btn.ghost:hover{background:var(--ora-surface);border-color:var(--ora-text)}
+.btn:disabled,.btn[aria-disabled=true]{opacity:.45;cursor:not-allowed}
+.btn[aria-busy=true]{pointer-events:none;color:transparent;position:relative}.btn[aria-busy=true]:after{content:"";position:absolute;width:18px;height:18px;border:2.5px solid #fff;border-right-color:transparent;border-radius:50%;animation:vvspin .7s linear infinite}
+@keyframes vvspin{to{transform:rotate(360deg)}}
+input[type=text],input[type=email],input[type=password],input[type=tel],input[type=number],input[type=date],input[type=search],select,textarea{font:inherit;font-size:15px;min-height:46px;border-radius:var(--ora-radius-input);background:#fff;color:var(--ora-text);border:1px solid var(--ln);padding:10px 14px;transition:border-color .15s}
+input:focus,select:focus,textarea:focus{outline:0;border-color:var(--ora-text);box-shadow:none}
+input:-webkit-autofill{-webkit-box-shadow:0 0 0 100px #fff inset;-webkit-text-fill-color:var(--ora-text)}
+
+/* ---------- section rhythm ---------- */
+.blk{padding-top:var(--sec);padding-bottom:0}
+.blk h1,.blk h2{font-size:clamp(22px,2.6vw,28px);line-height:1.15;margin:0 0 8px}
+.lead{color:var(--ora-text-muted);font-size:15px;line-height:1.55;max-width:60ch;margin:0 0 24px}
+.sh{display:flex;align-items:flex-end;justify-content:space-between;gap:12px 24px;flex-wrap:wrap;margin-bottom:20px}
+.sh h2{margin:0}.sh .lead{margin:6px 0 0}
+.more{font-weight:500;color:var(--ora-text);text-decoration:none;white-space:nowrap;font-size:14px}
+.more:after{content:" >"}.more:hover{text-decoration:underline;text-underline-offset:3px}
+.crumb{font-size:13px;color:var(--ora-text-muted)}.crumb a{color:var(--ora-text-muted);text-decoration:none}.crumb a:hover{color:var(--ora-text);text-decoration:underline}
+
+/* ---------- hero: promo banner on a white stage ---------- */
+.hero{background:var(--ora-surface);border:0}
+.hero-in{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:clamp(24px,4vw,56px);align-items:center;max-width:var(--ora-container);padding:clamp(28px,4vw,56px) var(--gut)}
+.hero h1{font-size:clamp(32px,4.8vw,56px);line-height:1.05;letter-spacing:-.02em;font-weight:700;margin:0 0 16px;max-width:15ch}
+.hero h1 span{display:inline;box-shadow:inset 0 -.32em 0 var(--ora-lime)}
+.hero p{font-size:17px;line-height:1.55;color:var(--tx);max-width:46ch;margin:0}
+.hero .row{margin:26px 0 22px}
+.trust{gap:6px 20px;font-size:14px;color:var(--ora-text-muted)}.trust li:before{content:"";display:inline-block;width:.55em;height:.55em;border-radius:50%;background:var(--ora-lime);margin-right:.55em}
+.hero-in>*{animation:vvrise .45s ease both}.hero-in>*:nth-child(2){animation-delay:.08s}
+@keyframes vvrise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.feat{display:flex;flex-direction:column;background:#fff;border:0;border-radius:var(--r-l);padding:clamp(16px,2.4vw,28px);box-shadow:none;color:var(--ora-text);position:relative}
+.feat img{mix-blend-mode:multiply;background:none;border-radius:0;width:100%;max-width:420px;margin:8px auto 16px}
+.feat strong{font-size:clamp(18px,2vw,22px);line-height:1.2;font-weight:600}.feat span{font-size:14px;color:var(--ora-text-muted)}
+.nepa{position:absolute;left:16px;top:16px;background:var(--ora-lime);color:#111!important;border:0;border-radius:var(--ora-radius-pill);padding:5px 12px;font-size:12px;font-weight:600;gap:8px;box-shadow:none}
+.nepa i{background:#111}.nepa b{color:#111}
+
+/* ---------- category index ---------- */
+.cgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0 28px;margin:0}
+.cgrid .cat{background:none;border:0;border-top:1px solid var(--ln);border-radius:0;box-shadow:none;transform:none;padding:16px 0;min-height:0;display:flex;flex-direction:row;align-items:center;justify-content:space-between;gap:12px;overflow:visible;position:relative}
+.cgrid .cat:before{display:none}
+.cgrid .cat:after{content:">";position:static;color:var(--ora-chevron-grey);transition:transform .15s}
+.cgrid .cat b{font-size:16px;line-height:1.25;font-weight:500;color:var(--ora-text)}
+.cgrid .cat:hover{background:none;border-color:var(--ora-text);box-shadow:none;transform:none}.cgrid .cat:hover:after{transform:translateX(3px);color:var(--ora-text)}
+
+/* ---------- product card: image / title / footer (price + round add button) ---------- */
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin:0}
+.pc{background:#fff;border:1px solid var(--ln);border-radius:var(--ora-radius-md);box-shadow:none;transform:none;overflow:hidden;position:relative;transition:border-color .15s,box-shadow .15s}
+.pc:hover{transform:none;border-color:var(--ora-text);box-shadow:none;background:#fff}
+.pc>a{color:inherit;display:flex;flex-direction:column;height:100%;text-decoration:none}
+.pc>a>img,.pc>img{aspect-ratio:1;object-fit:contain;background:#fff!important;border:0;border-radius:0;margin:0;width:100%;padding:14px}
+.pc div{padding:4px 14px 14px;display:flex;flex-direction:column;flex:1}
+.pc small{font-size:12px;color:var(--ora-text-muted);letter-spacing:0;text-transform:none}
+.pc h3{font-size:15px;line-height:1.3;font-weight:500;letter-spacing:0;margin:2px 0 10px;color:var(--ora-text);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.6em}
+.pc p,.pc-f{display:none}
+.pc .pr,.pr{font-family:var(--ora-font-sans);font-size:18px;font-weight:600;letter-spacing:-.01em;color:var(--ora-price);margin-top:auto;padding-right:44px;display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px}
+.pc .pr s,.pr s{font-size:13px;font-weight:400;color:var(--ora-icon-grey);text-decoration:line-through;order:2}
+.pc .pr small,.pr small{display:block;width:100%;order:3;font:400 12px/1.4 var(--ora-font-sans);color:var(--ora-text-muted);margin-top:2px}
+.pc-add{position:absolute;right:12px;bottom:12px;width:36px;height:36px;border-radius:50%;border:0;background:var(--ora-lime);color:#111;display:grid;place-items:center;cursor:pointer;padding:0;z-index:2;transition:transform .15s}
+.pc-add:hover{transform:scale(1.08)}.pc-add:active{transform:scale(.95)}.pc-add svg{width:18px;height:18px}
+.pc-add.busy{pointer-events:none}.pc-add.busy svg{display:none}.pc-add.busy:after{content:"";width:16px;height:16px;border:2px solid #111;border-right-color:transparent;border-radius:50%;animation:vvspin .7s linear infinite}
+.heart{width:36px;height:36px;top:8px;right:8px;background:#fff;border:1px solid var(--ln);color:var(--ora-icon-grey);transition:color .15s}
+.heart:hover{border-color:var(--ora-text);color:var(--ora-text)}.heart.on{color:var(--ora-hot)}
+.nb{top:10px;left:10px;background:var(--ora-lime);color:var(--ora-badge-text);border:1px solid var(--ora-lime);font-size:11px;font-weight:600;letter-spacing:0;text-transform:none;padding:3px 9px;border-radius:var(--ora-radius-pill);z-index:2}
+.pgrid.lead-grid:has(>.pc:nth-child(5):last-child){grid-template-columns:repeat(4,minmax(0,1fr))}
+.pgrid.lead-grid:has(>.pc:nth-child(5):last-child)>.pc:first-child{grid-column:span 2;grid-row:span 2}
+.pgrid.lead-grid:has(>.pc:nth-child(5):last-child)>.pc:first-child>a>img{flex:1;min-height:0;aspect-ratio:auto;padding:28px}
+.pgrid.lead-grid:has(>.pc:nth-child(5):last-child)>.pc:first-child>a>div{flex:none;padding:8px 18px 18px}
+.pgrid.lead-grid:has(>.pc:nth-child(5):last-child)>.pc:first-child h3{font-size:19px}
+.pgrid.lead-grid:has(>.pc:nth-child(5):last-child)>.pc:first-child .pr{font-size:22px}
+
+/* ---------- how buying works ---------- */
+.pillars{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:0}
+.pil{background:var(--ora-surface);border:0;border-radius:var(--r-l);padding:24px;gap:8px;color:inherit}
+.pil i{display:none}.pil b{font-size:20px;line-height:1.2;color:var(--ora-text);font-weight:600}
+.pil span{font-size:15px;line-height:1.55;color:var(--tx);max-width:46ch}
+.pil:hover b{text-decoration:underline;text-underline-offset:4px}
+
+/* ---------- closing promo band ---------- */
+.band{margin:var(--sec) auto 0;max-width:var(--ora-container);border-radius:var(--r-l);padding:clamp(24px,4vw,44px);background:var(--ora-lime);border:0;display:flex;align-items:center;justify-content:space-between;gap:20px 40px;flex-wrap:wrap;color:#111}
+.band h2{font-size:clamp(22px,2.8vw,30px);color:#111;margin:0}.band p{color:#1f3300;font-size:15px;max-width:50ch;margin:8px 0 0}.band .row{margin:0}
+.band .btn{background:#111;color:#fff}.band .btn:hover{background:#000}
+
+/* ---------- reviews ---------- */
+.rv-g{gap:16px;margin:0 0 20px}
+.rv{border-radius:var(--ora-radius-md);padding:20px;background:#fff;border:1px solid var(--ln)}
+.rv-s{color:var(--ora-star)}.rv blockquote{font-size:15px;color:var(--ora-text)}.rv figcaption{color:var(--ora-text-muted);font-weight:500;font-size:13px}
+.rv-e{color:var(--ora-text-muted);padding:0;margin:0}
+.rv-fm{border-radius:var(--ora-radius-md);background:#fff;border:1px solid var(--ln)}
+#revs:has(.rv-e){padding-top:var(--sec)}
+#revs:has(.rv-e) h2,#revs:has(.rv-e) .lead{display:none}
+#revs:has(.rv-e) .rv-g{margin:0;border-top:1px solid var(--ln);padding-top:20px;display:block}
+#revs:has(.rv-e) .rv-f{max-width:none;margin-top:4px;color:var(--tx)}
+#revs:has(.rv-e) .rv-f a{color:var(--ora-text);font-weight:600}
+
+/* ---------- footer: four link columns + app block ---------- */
+.ft{background:var(--ora-surface);color:var(--tx);margin-top:var(--sec);padding:44px 0 20px;border-top:1px solid var(--ln)}
+.ft .logo,.ft h4{color:var(--ora-text)}.ft .logo em{color:var(--ora-text)}
+.ft h4{font-size:15px;font-weight:600;letter-spacing:0;text-transform:none;margin:0 0 12px}
+.ft p{max-width:36ch;line-height:1.55;font-size:14px}
+.ft-in{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr 1fr;gap:32px;max-width:var(--ora-container)}
+.ft a:not(.logo):not(.ft-get){color:var(--tx);font-size:14px;padding:3px 0;text-decoration:none;display:block}.ft a:not(.logo):not(.ft-get):hover{color:var(--ora-text);text-decoration:underline;text-underline-offset:3px}
+.ft .ft-get{display:inline-flex;margin-top:12px;background:var(--ora-lime);color:#111;font-weight:600;font-size:13px;padding:8px 18px;border-radius:var(--ora-radius-pill);text-decoration:none}
+.ft-b{border-top:1px solid var(--ln);margin-top:36px;padding-top:16px;font-size:13px;color:var(--ora-text-muted);max-width:var(--ora-container)}
+.ft-b a{color:var(--ora-text-muted)!important;display:inline!important;font-size:13px!important}
+
+/* ---------- menu, drawer, overlays ---------- */
+.menu{background:#fff;border-color:var(--ln)}
+.menu h5{font-size:13px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--ora-text-muted);border-color:var(--ln)}
+.menu>a{color:var(--ora-text);font-size:15px;padding:12px 20px}.menu>a:hover{background:var(--ora-surface)}
+.menu em{background:var(--ora-lime);color:#111;font-weight:600;font-style:normal;border-radius:3px;padding:1px 6px;font-size:11px}
+.drawer{background:#fff;color:var(--ora-text);box-shadow:0 0 16px rgba(0,0,0,.10)}
+.vad-v{border-radius:var(--r-l);box-shadow:none;border-color:var(--ln)}.vmod-c{border-radius:var(--r-l);border-top-color:var(--ora-lime)}
+
+/* ---------- responsive ---------- */
+@media(max-width:1020px){.cgrid{grid-template-columns:repeat(3,minmax(0,1fr))}.ft-in{grid-template-columns:repeat(3,1fr)}.ft-in>div:first-child{grid-column:1/-1}}
+@media(max-width:860px){
+  .hd-in{padding:8px var(--gut);flex-wrap:wrap}.logo{flex:1;min-width:0;font-size:19px}.search{order:5;flex-basis:100%}
+  .hero-in{grid-template-columns:1fr;padding-top:20px}.hero h1{max-width:16ch}
+  .pgrid.lead-grid:has(>.pc:nth-child(5):last-child){grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .pgrid.lead-grid:has(>.pc:nth-child(5):last-child)>.pc:first-child{grid-column:1/-1;grid-row:auto}
+  .pgrid.lead-grid:has(>.pc:nth-child(5):last-child)>.pc:first-child>a>img{aspect-ratio:4/3;flex:none;padding:20px}
+  .pillars{grid-template-columns:1fr}}
+@media(max-width:700px){
+  .cgrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:0 16px}.cgrid .cat{padding:14px 0}.cgrid .cat b{font-size:14.5px}
+  .hero p{font-size:15.5px}.hero .row .btn{flex:1 1 100%}
+  .band .row,.band .btn{width:100%}.ft-in{grid-template-columns:1fr 1fr}.ft-in>div:first-child{grid-column:1/-1}
+  .ora-app .tx span{display:none}}
+@media(max-width:560px){
+  .hd .ic[href="/wishlist"]{display:none}.logo b,.logo b img{width:34px!important;height:34px!important}
+  .pgrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .pc div{padding:2px 10px 12px}.pc h3{font-size:14px}.pc .pr,.pr{font-size:16px;padding-right:40px}
+  .pc>a>img,.pc>img{padding:8px}.heart{width:32px;height:32px}.pc-add{width:34px;height:34px;right:8px;bottom:8px}}
+@media(max-width:430px){.logo{font-size:18px;gap:8px}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+/* ---------- sub-categories ---------- */
+.pc[hidden]{display:none}
+.subs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 24px}
+.subs a{display:inline-flex;align-items:center;gap:8px;min-height:38px;padding:0 16px;border:1px solid var(--ln);border-radius:var(--ora-radius-pill);background:#fff;color:var(--ora-text);font-size:14px;font-weight:500;text-decoration:none;transition:border-color .15s}
+.subs a:hover{border-color:var(--ora-text)}
+.subs a.on{background:var(--ora-lime);border-color:var(--ora-lime);color:#111}
+.subs a.z{color:var(--ora-text-muted);background:none;border-style:dashed}
+.subs small{font-size:12px;color:var(--ora-text-muted);font-variant-numeric:tabular-nums}.subs a.on small{color:#1f3300}
+.subz{margin:0 0 20px}
+@media(max-width:700px){.subs{flex-wrap:nowrap;overflow-x:auto;margin-left:calc(var(--gut)*-1);margin-right:calc(var(--gut)*-1);padding:0 var(--gut) 4px;scrollbar-width:none}.subs::-webkit-scrollbar{display:none}.subs a{flex:none}}
+#dbc>h2{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.menu .mc{display:flex;align-items:stretch}.menu .mc>a{flex:1}
+.menu .mt{flex:none;width:52px;border:0;background:none;color:var(--ora-chevron-grey);cursor:pointer;display:grid;place-items:center}
+.menu .mt:hover{background:var(--ora-surface);color:var(--ora-text)}.menu .mt svg{transition:transform .2s}.menu .mc.open .mt svg{transform:rotate(180deg)}
+.menu .ms{background:var(--ora-surface);border-top:1px solid var(--ln);border-bottom:1px solid var(--ln);padding:6px 0}
+.menu .ms a{display:block;padding:10px 20px 10px 36px;font-size:14px;color:var(--tx);text-decoration:none}.menu .ms a:hover{background:#fff;color:var(--ora-text)}
+
+/* ================= product, cart, checkout, account ================= */
+.chip.ok{background:#e6f7d0;color:#2d5a00}.chip.am{background:#fdebd0;color:#8a4f00}.chip.bl{background:#dbeaf8;color:#1b5f9e}.chip.rd{background:#fbdede;color:#a32626}
+.opt:has(input:checked){border-color:var(--ora-text);background:var(--ora-surface)}
+.opt,.cx-p .opt{border-radius:var(--ora-radius-md)}
+.stp li.done i{color:#111;background:var(--ora-lime);border-color:var(--ora-lime)}
+.tl li.now{color:var(--ora-text)}
+.dck.on{background:var(--ora-lime);border-color:var(--ora-lime);color:#111}
+.cx{border-radius:var(--ora-radius-md);box-shadow:none;border-color:var(--ln)}
+.cx-h b,.dr-h b{font-family:var(--ora-font-sans);font-weight:600;font-size:18px}
+.btn.dkb,.dkb,.cx .btn:not(.ghost),.cx button.dkb{background:var(--ora-cta-bg);border:0;color:var(--ora-cta-text);border-radius:var(--ora-radius-cta);min-height:46px;padding:0 22px;font-size:15px;font-weight:600}
+.btn.dkb:hover,.dkb:hover,.cx .btn:not(.ghost):hover{background:var(--vv-green-dark)}
+.cx .btn.ghost,.drawer .btn.ghost{border-radius:var(--ora-radius-cta)}
+.cx a.sg,.cx .lk{color:var(--ora-text);text-decoration:underline}
+.dtot b,.cx .dtot b{font-family:var(--ora-font-sans)}
+.toast{background:var(--ora-text);color:#fff}
+
+/* product page: breadcrumb > gallery > h1 > price > chips > qty > trust row > CTA stack */
+.pdp .gmain>img,.pdp .gal img{border-radius:var(--ora-radius-md);box-shadow:none;border:1px solid var(--ln);background:#fff}
+.pdp .gmain>img{border-color:var(--ln)}
+.pdp .th3 img{border-radius:var(--ora-radius-md);opacity:.65}.pdp .th3 img.on,.pdp .th3 img:hover{opacity:1;outline:1px solid var(--ora-text)}
+.pdp .pd{gap:36px}
+.pdp .info{gap:14px;top:80px}
+.pdp .info>small{font:500 14px/1.2 var(--ora-font-sans);letter-spacing:0;text-transform:none;color:var(--ora-text-muted)}
+.pdp .info h1{font-size:clamp(20px,2.2vw,26px);line-height:1.2;font-weight:600;text-wrap:pretty}
+.pdp .info>p{font-size:15px;line-height:1.55;color:var(--tx)}
+.pdp .rm{font-weight:500;color:var(--ora-text);text-decoration:underline}
+.pdp .heart.big{height:auto;width:auto;border-radius:var(--ora-radius-pill);border:1px solid var(--ln);background:#fff;font-weight:500;color:var(--ora-text)}
+.hl span{background:none;border:1px solid var(--ln);font-size:13px;font-weight:500;color:var(--tx);border-radius:var(--ora-radius-pill)}
+.hl span:before{background:var(--ora-lime)}
+.pdp #buy{border-radius:var(--ora-radius-md);padding:18px 20px;background:var(--ora-surface);border:0}
+.pdp #buy .amt{font-size:clamp(28px,3.4vw,36px);font-weight:600;color:var(--ora-text)}
+.pdp-save s{color:var(--ora-icon-grey);text-decoration-color:var(--ora-icon-grey)}
+.pdp-save em{background:var(--ora-lime);color:#111;font-weight:600}.pdp-save span{color:var(--ora-text)}
+.pdp .row{grid-template-columns:1fr 1fr}.pdp .row .btn{border-radius:var(--ora-radius-cta);min-height:50px}
+.pdp .qty{border-radius:var(--ora-radius-md);border:1px solid var(--ln)}
+.tc3{gap:0 24px;margin-top:2px}
+.tc3 div{background:none;border:0;border-top:1px solid var(--ln);border-radius:0;padding:12px 0 0}
+.tc3 i{display:none}.tc3 b{font-weight:600;color:var(--ora-text);font-size:14px}.tc3 span,.tc3 small{color:var(--ora-text-muted);font-size:13px}
+.pdp-tabs{padding:0;gap:28px;background:#fff;backdrop-filter:none;border:0;border-bottom:1px solid var(--ln);border-radius:0;margin-top:56px}
+.pdp-tabs a{flex:none;padding:14px 2px;border-radius:0;border-bottom:2px solid transparent;margin-bottom:-1px;font:600 15px var(--ora-font-sans);color:var(--ora-text-muted)}
+.pdp-tabs a:hover,.pdp-tabs a.on{background:none;color:var(--ora-text);border-bottom-color:var(--ora-lime)}
+.pdp-sec{padding-top:48px}.pdp-sec>h2{font-size:clamp(20px,2.4vw,26px);margin-bottom:20px}
+.fgrid{grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:0 32px}
+.fgrid div{background:none;border:0;border-top:1px solid var(--ln);border-radius:0;padding:16px 0 20px;box-shadow:none}
+.fgrid em{display:inline-grid;place-items:center;min-width:26px;height:26px;border-radius:50%;background:var(--ora-lime);color:#111;font:600 12px var(--ora-font-sans);letter-spacing:0;margin-bottom:6px}
+.fgrid b{display:block;font-size:16px;font-weight:600;color:var(--ora-text)}.fgrid span{display:block;margin-top:4px;color:var(--ora-text-muted);font-size:14px}
+.pdp .spec{border-radius:var(--ora-radius-md);overflow:hidden;border:1px solid var(--ln)}
+.spec th{background:var(--ora-surface);color:var(--tx);font-weight:500;width:34%}.spec td{color:var(--ora-text)}
+.faq2{gap:8px}.faq2 details{border-radius:var(--ora-radius-md);background:#fff}.faq2 summary{font:500 15px var(--ora-font-sans);color:var(--ora-text)}.faq2 summary:after{color:var(--ora-text)}
+.pdp .tags{margin-top:48px}.pdp .tags h2{font-size:14px;font-weight:600;color:var(--ora-text-muted);margin:0 0 10px}
+.tags span{border:0;background:var(--ora-surface);color:var(--ora-text-muted);font-size:12px;padding:4px 10px;border-radius:var(--ora-radius-pill)}
+.pdp-sticky{background:#fff;border-top:1px solid var(--ln);box-shadow:0 0 16px rgba(0,0,0,.10)}
+.pdp-sticky b{font-family:var(--ora-font-sans);font-weight:600}
+@media(max-width:860px){.tc3{grid-template-columns:1fr;gap:0}.tc3 div{display:block;padding:10px 0}.pdp-tabs{gap:22px;margin-top:36px}.pdp-sec{padding-top:36px}}
+
+/* top-of-site announcement (admin-controlled): lime, not green */
+.vbar{--bg:var(--ora-lime);color:#111}.vbar.promo{--bg:var(--ora-text);color:#fff}.vbar.alert{--bg:var(--ora-hot);color:#fff}
+.vbar-a,.vbar-x{background:#0000001a;color:inherit}.vbar-a:hover,.vbar-x:hover{background:#0000003a}
+.vbar button:focus-visible{outline-color:currentColor}
+
+/* support chat + back-to-top */
+.vc-l{background:var(--ora-text);color:var(--ora-lime);border-color:var(--ora-text)}
+.vc-l i{background:var(--ora-hot);border-color:var(--ora-text)}
+.vc-h{background:var(--ora-text)}.vc-b.me{background:var(--ora-text);color:#fff}
+.vc-p{background:#fff;border-radius:16px 16px 0 0;box-shadow:0 0 16px rgba(0,0,0,.18)}
+.vc-q button{border-color:var(--ora-text);color:var(--ora-text)}
+
+/* ---------- fixes found in review ---------- */
+.ic,.ic span,.ic i,.burger{font-family:var(--ora-font-sans)}
+.ft a.ft-get{display:inline-flex;width:auto;align-self:flex-start;margin-top:12px;padding:8px 18px;color:#111;text-decoration:none}
+.ft a.ft-get:hover{background:#000;color:#fff;text-decoration:none}
+.ora-note .tx{padding:0 36px}
+@media(min-width:861px){.ora-note .tx{padding:0}}
+
+/* ===== ValueVille brand layer: green / orange / black, original logo ===== */
+::selection{background:var(--vv-orange);color:#111}
+.logo{display:inline-flex;align-items:center}.logo .logo-full{height:58px;width:auto;display:block}
+.ft .logo .logo-full{background:#fff;border-radius:10px;padding:4px 8px}
+.ora-note{background:#111;color:#fff;border-bottom:0}.ora-note .ora-x{color:#bbb}.ora-note .ora-x:hover{background:#ffffff22;color:#fff}
+.ora-app .get,.ft .ft-get{background:var(--vv-orange);color:#111}
+.hero h1 span{box-shadow:inset 0 -.32em 0 var(--vv-orange)}
+.hero{background:linear-gradient(180deg,#f2f8f3,#fff)}
+.nepa{background:var(--vv-green);color:#fff!important}.nepa *{color:#fff}
+.band{background:linear-gradient(135deg,#12803f,#073a1c);color:#fff}.band h2,.band p{color:#fff}.band .btn{background:var(--vv-orange);color:#111}.band .btn:hover{background:#ff8a3d}
+.pc-add{background:var(--vv-green);color:#fff}.pc-add:hover{background:var(--vv-orange);color:#111}
+.nb,.menu em,.pdp-save em,.fgrid em{background:var(--vv-orange);border-color:var(--vv-orange);color:#111}
+.subs a.on,.dck.on,.stp li.done i{background:var(--vv-green);border-color:var(--vv-green);color:#fff}
+.pdp-tabs a:hover,.pdp-tabs a.on{border-bottom-color:var(--vv-orange)}
+.cats a:hover{border-color:var(--vv-green)}.trust li:before,.hl span:before{background:var(--vv-green)}
+.vbar{--bg:var(--vv-orange);color:#111}.vc-l{background:#111;color:var(--vv-orange)}
+.ft{background:#111;color:#cfcfcf;border-top:4px solid var(--vv-orange)}.ft h4,.ft .logo{color:#fff}.ft a:not(.logo):not(.ft-get){color:#cfcfcf}.ft a:not(.logo):not(.ft-get):hover{color:var(--vv-orange)}.ft-b,.ft-b a{color:#999!important;border-color:#333}
+.hd{border-bottom:2px solid var(--vv-green)}
+a{--link:var(--vv-green)}
+.btn.ghost{border-color:var(--vv-green);color:var(--vv-green)}
+.nepa b{color:var(--vv-orange-light)!important}
+@media(max-width:600px){.logo .logo-full{height:46px}}

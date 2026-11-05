@@ -1,0 +1,74 @@
+/*
+ * ValueVille MALL design tokens
+ * Structure follows the oraimo-ui-taste skill (light only, flat, white product stage).
+ * Colours are ValueVille's own brand (green #0b5228 / orange #f26a1b / black #111), taken from the logo.
+ * Fonts, sizes, radii and spacing are the skill's UNVERIFIED placeholders, not measured from oraimo.
+ */
+:root {
+  color-scheme: only light; /* verified: page declares only light */
+
+  /* Typography (family VERIFIED; sizes UNVERIFIED) */
+  --ora-font-sans: "Outfit", "Cairo", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; /* VERIFIED: site loads Outfit + Cairo. Stack order is assumed. */
+  --ora-text-base: 14px;
+  --ora-text-h1: 24px;
+  --ora-text-h4: 16px;
+  --ora-weight-regular: 400;
+  --ora-weight-bold: 700;
+  --ora-line-height: 1.5;
+
+  /* Colour */
+  --ora-lime: #f26a1b;   /* brand orange (from logo) */
+  --vv-green: #0b5228; --vv-green-mid: #12803f; --vv-green-dark: #073a1c; --vv-orange: #f26a1b; --vv-orange-light: #ff8a3d; --vv-black: #111111;
+  --ora-hot: #d93a00;             /* VERIFIED: "trending" flame icon in search */
+  --ora-icon-grey: #999999;       /* VERIFIED: line-icon stroke */
+  --ora-chevron-grey: #666666;    /* VERIFIED: chevron stroke */
+  /* [UNVERIFIED] below */
+  --ora-bg: #ffffff;
+  --ora-surface: #f5f5f5;
+  --ora-text: #1a1a1a;
+  --ora-text-muted: #6b6b6b;
+  --ora-border: #e5e5e5;
+  --ora-cta-bg: #0b5228;
+  --ora-cta-text: #ffffff;
+  --ora-price: #1a1a1a; /* [UNVERIFIED] */
+  --ora-badge-bg: var(--ora-lime); /* VERIFIED for New Arrival; other badge colours not in markup */
+  --ora-badge-text: #111111;
+  --ora-star: #f5a623;
+
+  /* Shape and space (UNVERIFIED) */
+  --ora-radius-sm: 4px;
+  --ora-radius-md: 8px;
+  --ora-radius-pill: 999px;
+  --ora-radius-cta: 8px;
+  --ora-radius-input: 4px;
+  --ora-radius-badge: 4px;
+  --ora-shadow-card: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --ora-space-1: 4px;
+  --ora-space-2: 8px;
+  --ora-space-3: 16px;
+  --ora-space-4: 24px;
+  --ora-space-5: 40px;
+  --ora-container: 1200px;
+}
+
+body {
+  font-family: var(--ora-font-sans);
+  font-size: var(--ora-text-base);
+  line-height: var(--ora-line-height);
+  color: var(--ora-text);
+  background: var(--ora-bg);
+}
+
+/* ---- ValueVille MALL bridge: legacy variable names -> oraimo tokens ----
+   Every page and inline style still reads --g / --o / --paper etc. Re-pointing them here
+   restyles the whole site from one place. oraimo status is PARTIAL (see header). */
+:root{
+  --paper:var(--ora-bg);--sf:var(--ora-bg);--mist:var(--ora-surface);--ln:#dddddd;
+  --ink:var(--ora-text);--hi:var(--ora-text);--tx:#333333;--mut:var(--ora-text-muted);
+  --g:var(--ora-cta-bg);--gl:#12803f;--gd:#073a1c;
+  --o:var(--ora-lime);--cta:var(--ora-cta-bg);--ctah:#073a1c;--panel:var(--ora-surface);
+  --fd:var(--ora-font-sans);--fb:var(--ora-font-sans);
+  --r-c:var(--ora-radius-cta);--r-m:var(--ora-radius-md);--r-l:16px;
+  --gut:20px;--sec:56px;
+}
+@media(max-width:700px){:root{--gut:14px;--sec:40px}}
