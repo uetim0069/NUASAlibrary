@@ -1,5 +1,5 @@
 /* NUASA Library service worker. Bump VERSION to force clients to refresh cached files. */
-const VERSION = "v23";
+const VERSION = "v16";
 const SHELL = "nuasa-shell-" + VERSION;
 const ASSETS = "nuasa-assets-" + VERSION;
 const FILES = "nuasa-files"; // files students saved for offline. Never deleted by updates.
@@ -43,9 +43,9 @@ self.addEventListener("fetch", e => {
     e.respondWith(
       fetch(req).then(res => {
         const copy = res.clone();
-        caches.open(SHELL).then(c => c.put(url.pathname === "/" ? "/" : req, copy));
+        caches.open(SHELL).then(c => c.put("/", copy));
         return res;
-      }).catch(() => caches.match(req).then(r => r || caches.match("/")).then(r => r || caches.match("/offline.html")))
+      }).catch(() => caches.match("/").then(r => r || caches.match("/offline.html")))
     );
     return;
   }
