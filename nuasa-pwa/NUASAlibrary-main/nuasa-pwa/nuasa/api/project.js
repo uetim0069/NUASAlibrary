@@ -23,6 +23,36 @@ const TOPIC_SCHEMA = { type: "ARRAY", items: { type: "OBJECT", properties: {
   title: { type: "STRING" }, angle: { type: "STRING" }, method: { type: "STRING" }, data: { type: "STRING" }, difficulty: { type: "STRING", enum: ["Easy", "Moderate", "Challenging"] } },
   required: ["title", "angle", "method", "data", "difficulty"] } };
 
+
+/* Gemini caller for the one-shot (non streaming) calls: hard timeout, one retry, then a lighter fallback model.
+   Without this a slow Gemini reply makes Vercel kill the function and the student sees a bare "error 504". */
+const FALLBACK_MODEL = process.env.GEMINI_FALLBACK_MODEL || "gemini-2.5-flash-lite";
+async function geminiOnce(model, body, ms) {
+  const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), ms);
+  try {
+    return await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+      method: "POST", headers: { "x-goog-api-key": AI_KEY, "content-type": "application/json" }, body: JSON.stringify(body), signal: ctl.signal });
+  } finally { clearTimeout(t); }
+}
+async function geminiJSON(system, msg, gen) {
+  const started = Date.now(), plan = [[MODEL, 24000], [MODEL, 14000], [FALLBACK_MODEL, 14000]];
+  let last = null;
+  for (const [model, ms] of plan) {
+    const left = 54000 - (Date.now() - started);
+    if (left < 6000) break;
+    const g = { ...gen }; if (/2\.5-flash/.test(model)) g.thinkingConfig = { thinkingBudget: 0 }; else delete g.thinkingConfig;
+    try {
+      const r = await geminiOnce(model, { systemInstruction: { parts: [{ text: system }] }, contents: [{ role: "user", parts: [{ text: msg }] }], generationConfig: g }, Math.min(ms, left));
+      if (r.ok) return r;
+      last = r; console.error("gemini", model, r.status, (await r.text().catch(() => "")).slice(0, 300));
+      if (r.status === 400 || r.status === 401 || r.status === 403) break;      // retrying will not help
+    } catch (e) { console.error("gemini", model, e && e.name || e); last = null; }
+    await new Promise(z => setTimeout(z, 700));
+  }
+  return last;   // a failed Response, or null when every try timed out
+}
+const busyMsg = r => !r ? "The AI took too long to answer. Tap Try again." : r.status === 429 ? "The free AI quota is busy right now. Wait a minute and try again." : "The assistant is unavailable right now (code " + r.status + "). Tap Try again.";
+
 async function topicsMode(res, user, body) {
   const f = body.form || {};
   const field = clean(f.field, 100);
@@ -44,18 +74,8 @@ async function topicsMode(res, user, body) {
 
   const msg = `Suggest 6 project topics.\nField of study: ${field}\nStudent interests: ${interest || "not stated, choose current and relevant areas"}\nPlace or sector focus: ${scope || "Nigeria in general"}\nAcademic level: ${level}\nPreferred approach: ${approach}\n\nFor each topic give: title (a proper academic title), angle (1 or 2 sentences on the problem or gap it addresses), method (one sentence: design, sample or sources, and analysis technique), data (where the student can realistically get the data), difficulty (Easy, Moderate or Challenging).`;
   const gen = { temperature: 0.9, maxOutputTokens: 2500, responseMimeType: "application/json", responseSchema: TOPIC_SCHEMA };
-  if (/2\.5-flash/.test(MODEL)) gen.thinkingConfig = { thinkingBudget: 0 };
-  let up;
-  try {
-    up = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`, {
-      method: "POST", headers: { "x-goog-api-key": AI_KEY, "content-type": "application/json" },
-      body: JSON.stringify({ systemInstruction: { parts: [{ text: TOPIC_SYSTEM }] }, contents: [{ role: "user", parts: [{ text: msg }] }], generationConfig: gen }),
-    });
-  } catch (e) { return fail(res, 502, "The assistant could not be reached. Try again."); }
-  if (!up.ok) {
-    console.error("gemini topics", up.status, await up.text().catch(() => ""));
-    return fail(res, up.status === 429 ? 429 : 502, up.status === 429 ? "The free AI quota is busy right now. Wait a minute and try again." : "The assistant is unavailable right now (code " + up.status + ").");
-  }
+  const up = await geminiJSON(TOPIC_SYSTEM, msg, gen);
+  if (!up || !up.ok) return fail(res, up && up.status === 429 ? 429 : 502, busyMsg(up));
   let topics;
   try {
     const d = await up.json();
@@ -169,14 +189,9 @@ RULES
 8. controlName: "Department" or "Respondent Category" for a survey, "Firm Size" for ex post facto.
 9. theories: exactly 4 real, well known theories that suit the topic, each with its real proponent (for example "Activity-Based Costing Theory", "Cooper and Kaplan"). Only theories you are sure exist.
 10. Do not use dashes of any kind in any text.`;
-  const gen = { temperature: 0.6, maxOutputTokens: 4500, responseMimeType: "application/json", responseSchema: BP_SCHEMA };
-  if (/2\.5-flash/.test(MODEL)) gen.thinkingConfig = { thinkingBudget: 0 };
-  let up;
-  try {
-    up = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`, { method: "POST", headers: { "x-goog-api-key": AI_KEY, "content-type": "application/json" },
-      body: JSON.stringify({ systemInstruction: { parts: [{ text: BP_SYSTEM }] }, contents: [{ role: "user", parts: [{ text: msg }] }], generationConfig: gen }) });
-  } catch (e) { return fail(res, 502, "The assistant could not be reached. Try again."); }
-  if (!up.ok) { console.error("gemini blueprint", up.status, await up.text().catch(() => "")); return fail(res, up.status === 429 ? 429 : 502, up.status === 429 ? "The free AI quota is busy right now. Wait a minute and try again." : "The assistant is unavailable right now (code " + up.status + ")."); }
+  const gen = { temperature: 0.5, maxOutputTokens: 3500, responseMimeType: "application/json", responseSchema: BP_SCHEMA };
+  const up = await geminiJSON(BP_SYSTEM, msg, gen);
+  if (!up || !up.ok) return fail(res, up && up.status === 429 ? 429 : 502, busyMsg(up));
   let bp;
   try {
     const d = await up.json(), txt = ((d.candidates && d.candidates[0] && d.candidates[0].content && d.candidates[0].content.parts) || []).map(p => p.text || "").join("");
@@ -466,6 +481,16 @@ IN-TEXT CITATIONS FOUND IN THE PROJECT: ${cites && cites.length ? cites.join("; 
 const SEC_ORDER = Object.keys(SEC);
 
 module.exports = async (req, res) => {
+  if (req.method === "GET" && /(\?|&)check\b/.test(req.url || "")) {   // open /api/project?check to test the Gemini connection
+    const out = { version: "504-fix-2", model: MODEL, fallback: FALLBACK_MODEL, hasGeminiKey: !!AI_KEY, hasSupabaseServiceKey: !!SB_SERVICE, tests: [] };
+    for (const m of [MODEL, FALLBACK_MODEL]) {
+      const t0 = Date.now(); let status = 0, note = "";
+      try { const r = await geminiOnce(m, { contents: [{ role: "user", parts: [{ text: "Reply with the word ok." }] }], generationConfig: { maxOutputTokens: 8 } }, 15000); status = r.status; if (!r.ok) note = (await r.text().catch(() => "")).replace(/AIza[\w-]+/g, "***").slice(0, 200); }
+      catch (e) { note = e && e.name === "AbortError" ? "no answer within 15 seconds" : String(e && e.message || e).slice(0, 120); }
+      out.tests.push({ model: m, status, ms: Date.now() - t0, note });
+    }
+    res.statusCode = 200; res.setHeader("Content-Type", "application/json"); res.setHeader("Cache-Control", "no-store"); return res.end(JSON.stringify(out, null, 1));
+  }
   if (req.method !== "POST") return fail(res, 405, "Method not allowed.");
   if (!AI_KEY || !SB_SERVICE) return fail(res, 500, "The Project AI Studio is not set up yet. Please tell the NUASA admin.");
 
@@ -503,17 +528,23 @@ module.exports = async (req, res) => {
   const msg = `${brief(bp, S, { level, field: bp.field })}\nCitation style: ${cite}\n\nTASK\n${sec.t(bp, S, { cite, level }, cites)}\n\nPROJECT TEXT WRITTEN SO FAR (for consistency only; do not repeat it):\n${prior || "(nothing yet)"}`;
   const gen = { maxOutputTokens: Math.min(14000, Math.ceil(sec.words * 1.8) + 900), temperature: 0.75 };
   if (/2\.5-flash/.test(MODEL)) gen.thinkingConfig = { thinkingBudget: 0 }; // spend the quota on writing, not hidden reasoning
-  let up;
-  try {
-    up = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:streamGenerateContent?alt=sse`, {
-      method: "POST", headers: { "x-goog-api-key": AI_KEY, "content-type": "application/json" },
-      body: JSON.stringify({ systemInstruction: { parts: [{ text: SYSTEM }] }, contents: [{ role: "user", parts: [{ text: msg }] }], generationConfig: gen }),
-    });
-  } catch (e) { return fail(res, 502, "The assistant could not be reached. Try again."); }
-  if (!up.ok) {
-    console.error("gemini", up.status, await up.text().catch(() => ""));
-    return fail(res, up.status === 429 ? 429 : 502, up.status === 429 ? "The free AI quota is busy right now. Wait a minute and tap Continue." : "The assistant is unavailable right now (code " + up.status + "). Check the model name and API key, then try again.");
+  // The stream must start within 25 s, otherwise try the lighter model once (a hung connection would end as a bare 504).
+  let up = null, lastStatus = 0;
+  for (const [model, ms] of [[MODEL, 25000], [FALLBACK_MODEL, 20000]]) {
+    const g = { ...gen }; if (!/2\.5-flash/.test(model)) delete g.thinkingConfig;
+    const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), ms);
+    try {
+      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse`, {
+        method: "POST", headers: { "x-goog-api-key": AI_KEY, "content-type": "application/json" }, signal: ctl.signal,
+        body: JSON.stringify({ systemInstruction: { parts: [{ text: SYSTEM }] }, contents: [{ role: "user", parts: [{ text: msg }] }], generationConfig: g }),
+      });
+      clearTimeout(t);
+      if (r.ok) { up = r; break; }
+      lastStatus = r.status; console.error("gemini", model, r.status, (await r.text().catch(() => "")).slice(0, 300));
+      if (r.status === 400 || r.status === 401 || r.status === 403) break;
+    } catch (e) { clearTimeout(t); console.error("gemini", model, e && e.name || e); lastStatus = 0; }
   }
+  if (!up) return fail(res, lastStatus === 429 ? 429 : 502, lastStatus === 429 ? "The free AI quota is busy right now. Wait a minute and tap Continue." : lastStatus ? "The assistant is unavailable right now (code " + lastStatus + "). Tap Try again." : "The AI took too long to answer. Tap Try again.");
 
   // Count this call only now that the AI accepted it, so failed attempts do not use up a student's daily drafts.
   await logUse(user, body.section);
