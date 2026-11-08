@@ -10,6 +10,73 @@ const MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 const USER_LIMIT = parseInt(process.env.PROJECT_USER_LIMIT || "16", 10);    // AI calls per student per 24h (8 = one full draft, the rest are for regenerating sections)
 const GLOBAL_LIMIT = parseInt(process.env.PROJECT_GLOBAL_LIMIT || "160", 10); // AI calls for everyone per 24h (protects the free quota)
 
+
+// Gemini's free tier often answers 503 ("model overloaded") or 429 for a few seconds. Retry, then fall back to other models
+// (each model has its own load and quota). Override the list with GEMINI_FALLBACK_MODELS="modelA,modelB" in Vercel.
+const MODELS = [MODEL].concat((process.env.GEMINI_FALLBACK_MODELS || "gemini-2.5-flash-lite,gemini-flash-latest").split(",").map(x => x.trim()).filter(Boolean)).filter((m, i, a) => a.indexOf(m) === i);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+async function callGemini(method, payload) {
+  let last = null;
+  for (let i = 0; i < MODELS.length; i++) {
+    const m = MODELS[i];
+    const gc = { ...payload.generationConfig };
+    delete gc.thinkingConfig;
+    if (/2\.5-flash/.test(m)) gc.thinkingConfig = { thinkingBudget: 0 }; // spend the quota on writing, not hidden reasoning
+    const body = JSON.stringify({ ...payload, generationConfig: gc });
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:${method}`, {
+          method: "POST", headers: { "x-goog-api-key": AI_KEY, "content-type": "application/json" }, body });
+        if (r.ok) return r;
+        last = r;
+        const txt = await r.clone().text().catch(() => "");
+        console.error("gemini", m, "attempt", attempt + 1, "status", r.status, txt.slice(0, 300));
+        if (![429, 500, 503, 504].includes(r.status)) return r; // bad key / bad request: retrying will not help
+        if (attempt === 0 && r.status !== 429) await sleep(800); // brief pause, then one retry on the same model
+        else break;
+      } catch (e) { console.error("gemini fetch error", m, e && e.message); if (attempt === 0) await sleep(800); }
+    }
+  }
+  if (last) return last;
+  throw new Error("unreachable");
+}
+
+// ---- Groq fallback (free, OpenAI-compatible). Used only when Gemini is overloaded, over quota or unreachable. ----
+const GROQ_KEY = process.env.GROQ_API_KEY;
+const GROQ_MODELS = (process.env.GROQ_MODELS || "llama-3.3-70b-versatile,llama-3.1-8b-instant").split(",").map(x => x.trim()).filter(Boolean);
+const RETRYABLE = [429, 500, 503, 504];
+async function callGroq({ system, user, temperature, maxTokens, stream, json }) {
+  let last = null;
+  for (const m of GROQ_MODELS) {
+    try {
+      const body = { model: m, temperature, max_tokens: maxTokens, stream: !!stream, messages: [{ role: "system", content: system }, { role: "user", content: user }] };
+      if (json) body.response_format = { type: "json_object" };
+      const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST", headers: { Authorization: "Bearer " + GROQ_KEY, "content-type": "application/json" }, body: JSON.stringify(body) });
+      if (r.ok) return r;
+      last = r;
+      console.error("groq", m, "status", r.status, (await r.clone().text().catch(() => "")).slice(0, 300));
+      if (!RETRYABLE.includes(r.status)) break;
+    } catch (e) { console.error("groq fetch error", m, e && e.message); }
+  }
+  return last;
+}
+// Try Gemini first, then Groq. Returns { r: Response, p: "gemini" | "groq" }. If both fail, the Gemini failure is returned so errors stay familiar.
+async function callAI({ system, user, gen, stream, json, schema }) {
+  let g = null;
+  try {
+    g = await callGemini(stream ? "streamGenerateContent?alt=sse" : "generateContent", {
+      systemInstruction: { parts: [{ text: system }] }, contents: [{ role: "user", parts: [{ text: user }] }], generationConfig: gen });
+    if (g.ok) return { r: g, p: "gemini" };
+  } catch (e) { console.error("gemini unreachable", e && e.message); }
+  if (GROQ_KEY && (!g || RETRYABLE.includes(g.status))) {
+    const gr = await callGroq({ system, user, temperature: gen.temperature, maxTokens: gen.maxOutputTokens, stream, json });
+    if (gr && gr.ok) { console.error("served by groq fallback"); return { r: gr, p: "groq" }; }
+  }
+  if (g) return { r: g, p: "gemini" };
+  throw new Error("unreachable");
+}
+
 const SYSTEM = `You are an expert academic research assistant, subject tutor and project writer for university students. You write complete, well-reasoned, academically sound student project drafts, one section at a time.
 
 Tone: formal, objective, scholarly and analytical. No first-person fluff and no generic filler openings such as "In today's fast-paced world". Write full paragraphs with real argument lines, not bullet-point summaries. Use clear markdown headings (## for the chapter or section title, ### for subsections).
@@ -67,23 +134,24 @@ async function topicsMode(res, user, body) {
 
   const msg = `Suggest 6 project topics.\nField of study: ${field}\nStudent interests: ${interest || "not stated, choose current and relevant areas"}\nPlace or sector focus: ${scope || "Nigeria in general"}\nAcademic level: ${level}\nPreferred approach: ${approach}\n\nFor each topic give: title (a proper academic title), angle (1 or 2 sentences on the problem or gap it addresses), method (one sentence: design, sample or sources, and analysis technique), data (where the student can realistically get the data), difficulty (Easy, Moderate or Challenging).`;
   const gen = { temperature: 0.9, maxOutputTokens: 2500, responseMimeType: "application/json", responseSchema: TOPIC_SCHEMA };
-  if (/2\.5-flash/.test(MODEL)) gen.thinkingConfig = { thinkingBudget: 0 };
-  let up;
+  let up, prov;
   try {
-    up = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`, {
-      method: "POST", headers: { "x-goog-api-key": AI_KEY, "content-type": "application/json" },
-      body: JSON.stringify({ systemInstruction: { parts: [{ text: TOPIC_SYSTEM }] }, contents: [{ role: "user", parts: [{ text: msg }] }], generationConfig: gen }),
-    });
+    const out = await callAI({ system: TOPIC_SYSTEM, json: true, gen,
+      user: msg + '\n\nReturn ONLY a JSON object of this exact shape: {"topics":[{"title":"","angle":"","method":"","data":"","difficulty":"Easy|Moderate|Challenging"}]}' });
+    up = out.r; prov = out.p;
   } catch (e) { return fail(res, 502, "The assistant could not be reached. Try again."); }
   if (!up.ok) {
     console.error("gemini topics", up.status, await up.text().catch(() => ""));
-    return fail(res, up.status === 429 ? 429 : 502, up.status === 429 ? "The free AI quota is busy right now. Wait a minute and try again." : "The assistant is unavailable right now (code " + up.status + ").");
+    return fail(res, up.status === 429 ? 429 : 502, up.status === 429 ? "The free AI quota is busy right now. Wait a minute and try again." : up.status === 503 ? "Google's free AI is overloaded right now. Please tap Generate again in a minute." : "The assistant is unavailable right now (code " + up.status + ").");
   }
   let topics;
   try {
     const d = await up.json();
-    const txt = ((d.candidates && d.candidates[0] && d.candidates[0].content && d.candidates[0].content.parts) || []).map(p => p.text || "").join("");
-    const arr = JSON.parse(txt.replace(/^```json|```$/g, "").trim());
+    const txt = prov === "groq"
+      ? ((d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content) || "")
+      : ((d.candidates && d.candidates[0] && d.candidates[0].content && d.candidates[0].content.parts) || []).map(p => p.text || "").join("");
+    let arr = JSON.parse(txt.replace(/^```json|```$/g, "").trim());
+    if (!Array.isArray(arr)) arr = arr.topics || [];
     topics = arr.filter(t => t && t.title).slice(0, 8).map(t => ({
       title: clean(t.title, 220), angle: clean(t.angle, 500), method: clean(t.method, 360), data: clean(t.data, 300),
       difficulty: ["Easy", "Moderate", "Challenging"].includes(t.difficulty) ? t.difficulty : "Moderate" }));
@@ -153,14 +221,10 @@ PROJECT TEXT WRITTEN SO FAR (for consistency only; do not repeat it):
 ${prior || "(nothing yet)"}`;
 
   const gen = { maxOutputTokens: maxTokens, temperature: 0.7 };
-  if (/2\.5-flash/.test(MODEL)) gen.thinkingConfig = { thinkingBudget: 0 }; // spend the quota on writing, not hidden reasoning
-  let up;
+  let up, prov;
   try {
-    up = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:streamGenerateContent?alt=sse`, {
-      method: "POST",
-      headers: { "x-goog-api-key": AI_KEY, "content-type": "application/json" },
-      body: JSON.stringify({ systemInstruction: { parts: [{ text: SYSTEM }] }, contents: [{ role: "user", parts: [{ text: msg }] }], generationConfig: gen }),
-    });
+    const out = await callAI({ system: SYSTEM, user: msg, gen, stream: true });
+    up = out.r; prov = out.p;
   } catch (e) { return fail(res, 502, "The assistant could not be reached. Try again."); }
   if (!up.ok) {
     console.error("gemini", up.status, await up.text().catch(() => ""));
@@ -180,8 +244,14 @@ ${prior || "(nothing yet)"}`;
       while ((i = buf.indexOf("\n")) >= 0) {
         const line = buf.slice(0, i).trim(); buf = buf.slice(i + 1);
         if (!line.startsWith("data:")) continue;
+        if (line.slice(5).trim() === "[DONE]") continue;
         let ev; try { ev = JSON.parse(line.slice(5)); } catch (e) { continue; }
         if (ev.error) throw new Error("upstream");
+        if (prov === "groq") {
+          const t = ev.choices && ev.choices[0] && ev.choices[0].delta && ev.choices[0].delta.content;
+          if (t) res.write(t);
+          continue;
+        }
         const parts = ev.candidates && ev.candidates[0] && ev.candidates[0].content && ev.candidates[0].content.parts;
         if (parts) for (const p of parts) if (p.text) res.write(p.text);
       }
