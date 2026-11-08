@@ -11,26 +11,50 @@ const GLOBAL_LIMIT = parseInt(process.env.PROJECT_GLOBAL_LIMIT || "160", 10); //
 
 // ---- Groq (free, OpenAI-compatible). Tries each model in GROQ_MODELS until one answers. ----
 const GROQ_KEY = process.env.GROQ_API_KEY;
-const GROQ_MODELS = (process.env.GROQ_MODELS || "llama-3.3-70b-versatile,llama-3.1-8b-instant").split(",").map(x => x.trim()).filter(Boolean);
-const RETRYABLE = [429, 500, 503, 504];
+const GROQ_PINNED = (process.env.GROQ_MODELS || "").split(",").map(x => x.trim()).filter(Boolean); // optional manual override
+const RETRYABLE = [429, 500, 503, 504]; // (kept for reference)
 // fetch that gives up after ms (the timer is cleared as soon as headers arrive, so streaming bodies are not cut off)
 async function fetchT(url, opts, ms) {
   const ac = new AbortController(), t = setTimeout(() => ac.abort(), ms);
   try { return await fetch(url, { ...opts, signal: ac.signal }); } finally { clearTimeout(t); }
 }
 const sbFetch = (url, opts) => fetchT(url, opts, 10000); // Supabase calls must never hang the function
+
+// Groq renames and retires models, so ask Groq what this key can use and pick the best chat models, instead of hard-coding names.
+// Plain instruct models first (clean output), reasoning models last.
+const PREFER = [/llama-3\.3-70b/, /llama-4-maverick/, /llama-4-scout/, /llama-3\.1-70b/, /llama-3\.1-8b/, /gpt-oss-120b/, /qwen/, /gpt-oss-20b/, /llama/, /mistral|gemma|kimi/];
+const SKIP = /whisper|guard|tts|orpheus|playai|embed|compound|vision-preview|safeguard/i;
+let modelCache = { at: 0, ids: [] };
+async function groqModels() {
+  if (GROQ_PINNED.length) return GROQ_PINNED;
+  if (modelCache.ids.length && Date.now() - modelCache.at < 600000) return modelCache.ids;
+  try {
+    const r = await fetchT("https://api.groq.com/openai/v1/models", { headers: { Authorization: "Bearer " + GROQ_KEY } }, 8000);
+    if (r.ok) {
+      const d = await r.json();
+      const rank = id => { const i = PREFER.findIndex(re => re.test(id)); return i < 0 ? 99 : i; };
+      const ids = ((d && d.data) || []).filter(m => m && m.id && m.active !== false && !SKIP.test(m.id)).map(m => m.id)
+        .filter(id => rank(id) < 99).sort((x, y) => rank(x) - rank(y)).slice(0, 5);
+      if (ids.length) { modelCache = { at: Date.now(), ids }; console.error("groq models chosen:", ids.join(", ")); return ids; }
+    } else console.error("groq models list status", r.status);
+  } catch (e) { console.error("groq models list error", e && e.message); }
+  return modelCache.ids.length ? modelCache.ids : ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"];
+}
 async function callAI({ system, user, gen, stream, json }) {
   let last = null;
-  for (const m of GROQ_MODELS) {
+  for (const m of await groqModels()) {
     try {
       const body = { model: m, temperature: gen.temperature, max_tokens: gen.maxOutputTokens, stream: !!stream, messages: [{ role: "system", content: system }, { role: "user", content: user }] };
       if (json) body.response_format = { type: "json_object" };
+      if (/gpt-oss/i.test(m)) body.reasoning_effort = "low";
+      if (/qwen/i.test(m)) body.reasoning_format = "hidden";
       const r = await fetchT("https://api.groq.com/openai/v1/chat/completions", {
         method: "POST", headers: { Authorization: "Bearer " + GROQ_KEY, "content-type": "application/json" }, body: JSON.stringify(body) }, 20000);
       if (r.ok) return { r, p: "groq" };
       last = r;
       console.error("groq", m, "status", r.status, (await r.clone().text().catch(() => "")).slice(0, 300));
-      if (!RETRYABLE.includes(r.status)) break; // bad key / bad request: another model will not help
+      if (r.status === 401 || r.status === 403) { modelCache = { at: 0, ids: [] }; break; } // bad key: no model will work
+      // any other error (model not found, too large, busy): try the next model
     } catch (e) { console.error("groq fetch error/timeout", m, e && e.message); }
   }
   if (last) return { r: last, p: "groq" };
