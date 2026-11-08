@@ -1,79 +1,39 @@
 /* Project AI Studio backend (Vercel serverless function, free plan).
-   Uses Google's free Gemini API. Keeps the key secret, checks sign-in, limits use per student and per day, streams text back. */
+   Uses Groq's free API (Llama models). Keeps the key secret, checks sign-in, limits use per student and per day, streams text back. */
 const SB_URL = process.env.SUPABASE_URL || "https://wcikankedtelqbojzjdm.supabase.co";
 const SB_ANON = process.env.SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndjaWthbmtlZHRlbHFib2p6amRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE4NzQ4ODAsImV4cCI6MjEwNzQ1MDg4MH0.lo1ZscA3uVBsggtxHW9U2YPPDhQAWYa3pATioq83wQ4";
 const SB_SERVICE = process.env.SUPABASE_SERVICE_KEY;
-const AI_KEY = process.env.GEMINI_API_KEY;
 // Old-style service_role keys are JWTs (start with "eyJ") and go in both headers; new-style secret keys (sb_secret_...) go in "apikey" only.
 const SRV = k => (k && k.startsWith("eyJ")) ? { apikey: k, Authorization: "Bearer " + k } : { apikey: k };
-const MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 const USER_LIMIT = parseInt(process.env.PROJECT_USER_LIMIT || "16", 10);    // AI calls per student per 24h (8 = one full draft, the rest are for regenerating sections)
 const GLOBAL_LIMIT = parseInt(process.env.PROJECT_GLOBAL_LIMIT || "160", 10); // AI calls for everyone per 24h (protects the free quota)
 
 
-// Gemini's free tier often answers 503 ("model overloaded") or 429 for a few seconds. Retry, then fall back to other models
-// (each model has its own load and quota). Override the list with GEMINI_FALLBACK_MODELS="modelA,modelB" in Vercel.
-const MODELS = [MODEL].concat((process.env.GEMINI_FALLBACK_MODELS || "gemini-2.5-flash-lite,gemini-flash-latest").split(",").map(x => x.trim()).filter(Boolean)).filter((m, i, a) => a.indexOf(m) === i);
-const sleep = ms => new Promise(r => setTimeout(r, ms));
-async function callGemini(method, payload) {
-  let last = null;
-  for (let i = 0; i < MODELS.length; i++) {
-    const m = MODELS[i];
-    const gc = { ...payload.generationConfig };
-    delete gc.thinkingConfig;
-    if (/2\.5-flash/.test(m)) gc.thinkingConfig = { thinkingBudget: 0 }; // spend the quota on writing, not hidden reasoning
-    const body = JSON.stringify({ ...payload, generationConfig: gc });
-    for (let attempt = 0; attempt < 2; attempt++) {
-      try {
-        const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:${method}`, {
-          method: "POST", headers: { "x-goog-api-key": AI_KEY, "content-type": "application/json" }, body });
-        if (r.ok) return r;
-        last = r;
-        const txt = await r.clone().text().catch(() => "");
-        console.error("gemini", m, "attempt", attempt + 1, "status", r.status, txt.slice(0, 300));
-        if (![429, 500, 503, 504].includes(r.status)) return r; // bad key / bad request: retrying will not help
-        if (attempt === 0 && r.status !== 429) await sleep(800); // brief pause, then one retry on the same model
-        else break;
-      } catch (e) { console.error("gemini fetch error", m, e && e.message); if (attempt === 0) await sleep(800); }
-    }
-  }
-  if (last) return last;
-  throw new Error("unreachable");
-}
-
-// ---- Groq fallback (free, OpenAI-compatible). Used only when Gemini is overloaded, over quota or unreachable. ----
+// ---- Groq (free, OpenAI-compatible). Tries each model in GROQ_MODELS until one answers. ----
 const GROQ_KEY = process.env.GROQ_API_KEY;
 const GROQ_MODELS = (process.env.GROQ_MODELS || "llama-3.3-70b-versatile,llama-3.1-8b-instant").split(",").map(x => x.trim()).filter(Boolean);
 const RETRYABLE = [429, 500, 503, 504];
-async function callGroq({ system, user, temperature, maxTokens, stream, json }) {
+// fetch that gives up after ms (the timer is cleared as soon as headers arrive, so streaming bodies are not cut off)
+async function fetchT(url, opts, ms) {
+  const ac = new AbortController(), t = setTimeout(() => ac.abort(), ms);
+  try { return await fetch(url, { ...opts, signal: ac.signal }); } finally { clearTimeout(t); }
+}
+const sbFetch = (url, opts) => fetchT(url, opts, 10000); // Supabase calls must never hang the function
+async function callAI({ system, user, gen, stream, json }) {
   let last = null;
   for (const m of GROQ_MODELS) {
     try {
-      const body = { model: m, temperature, max_tokens: maxTokens, stream: !!stream, messages: [{ role: "system", content: system }, { role: "user", content: user }] };
+      const body = { model: m, temperature: gen.temperature, max_tokens: gen.maxOutputTokens, stream: !!stream, messages: [{ role: "system", content: system }, { role: "user", content: user }] };
       if (json) body.response_format = { type: "json_object" };
-      const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-        method: "POST", headers: { Authorization: "Bearer " + GROQ_KEY, "content-type": "application/json" }, body: JSON.stringify(body) });
-      if (r.ok) return r;
+      const r = await fetchT("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST", headers: { Authorization: "Bearer " + GROQ_KEY, "content-type": "application/json" }, body: JSON.stringify(body) }, 20000);
+      if (r.ok) return { r, p: "groq" };
       last = r;
       console.error("groq", m, "status", r.status, (await r.clone().text().catch(() => "")).slice(0, 300));
-      if (!RETRYABLE.includes(r.status)) break;
-    } catch (e) { console.error("groq fetch error", m, e && e.message); }
+      if (!RETRYABLE.includes(r.status)) break; // bad key / bad request: another model will not help
+    } catch (e) { console.error("groq fetch error/timeout", m, e && e.message); }
   }
-  return last;
-}
-// Try Gemini first, then Groq. Returns { r: Response, p: "gemini" | "groq" }. If both fail, the Gemini failure is returned so errors stay familiar.
-async function callAI({ system, user, gen, stream, json, schema }) {
-  let g = null;
-  try {
-    g = await callGemini(stream ? "streamGenerateContent?alt=sse" : "generateContent", {
-      systemInstruction: { parts: [{ text: system }] }, contents: [{ role: "user", parts: [{ text: user }] }], generationConfig: gen });
-    if (g.ok) return { r: g, p: "gemini" };
-  } catch (e) { console.error("gemini unreachable", e && e.message); }
-  if (GROQ_KEY && (!g || RETRYABLE.includes(g.status))) {
-    const gr = await callGroq({ system, user, temperature: gen.temperature, maxTokens: gen.maxOutputTokens, stream, json });
-    if (gr && gr.ok) { console.error("served by groq fallback"); return { r: gr, p: "groq" }; }
-  }
-  if (g) return { r: g, p: "gemini" };
+  if (last) return { r: last, p: "groq" };
   throw new Error("unreachable");
 }
 
@@ -124,8 +84,8 @@ async function topicsMode(res, user, body) {
   const H = { ...SRV(SB_SERVICE), Prefer: "count=exact", Range: "0-0" };
   try {
     const [mine, all] = await Promise.all([
-      fetch(`${SB_URL}/rest/v1/project_usage?user_id=eq.${user.id}&section=eq.topics&created_at=gte.${since}&select=id`, { headers: H }),
-      fetch(`${SB_URL}/rest/v1/project_usage?created_at=gte.${since}&select=id`, { headers: H }),
+      sbFetch(`${SB_URL}/rest/v1/project_usage?user_id=eq.${user.id}&section=eq.topics&created_at=gte.${since}&select=id`, { headers: H }),
+      sbFetch(`${SB_URL}/rest/v1/project_usage?created_at=gte.${since}&select=id`, { headers: H }),
     ]);
     if (!mine.ok || !all.ok) throw new Error("count");
     if (total(mine) >= TOPIC_LIMIT) return fail(res, 429, "You have used today's topic searches. Please come back tomorrow.");
@@ -141,15 +101,13 @@ async function topicsMode(res, user, body) {
     up = out.r; prov = out.p;
   } catch (e) { return fail(res, 502, "The assistant could not be reached. Try again."); }
   if (!up.ok) {
-    console.error("gemini topics", up.status, await up.text().catch(() => ""));
-    return fail(res, up.status === 429 ? 429 : 502, up.status === 429 ? "The free AI quota is busy right now. Wait a minute and try again." : up.status === 503 ? "Google's free AI is overloaded right now. Please tap Generate again in a minute." : "The assistant is unavailable right now (code " + up.status + ").");
+    console.error("groq topics", up.status, await up.text().catch(() => ""));
+    return fail(res, up.status === 429 ? 429 : 502, up.status === 429 ? "The free AI quota is busy right now. Wait a minute and try again." : "The assistant is unavailable right now (code " + up.status + ").");
   }
   let topics;
   try {
     const d = await up.json();
-    const txt = prov === "groq"
-      ? ((d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content) || "")
-      : ((d.candidates && d.candidates[0] && d.candidates[0].content && d.candidates[0].content.parts) || []).map(p => p.text || "").join("");
+    const txt = (d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content) || "";
     let arr = JSON.parse(txt.replace(/^```json|```$/g, "").trim());
     if (!Array.isArray(arr)) arr = arr.topics || [];
     topics = arr.filter(t => t && t.title).slice(0, 8).map(t => ({
@@ -157,21 +115,21 @@ async function topicsMode(res, user, body) {
       difficulty: ["Easy", "Moderate", "Challenging"].includes(t.difficulty) ? t.difficulty : "Moderate" }));
     if (!topics.length) throw new Error("empty");
   } catch (e) { return fail(res, 502, "The assistant returned an unreadable answer. Tap Generate again."); }
-  try { await fetch(SB_URL + "/rest/v1/project_usage", { method: "POST", headers: { ...SRV(SB_SERVICE), "Content-Type": "application/json", Prefer: "return=minimal" }, body: JSON.stringify({ user_id: user.id, section: "topics" }) }); } catch (e) {}
+  try { await sbFetch(SB_URL + "/rest/v1/project_usage", { method: "POST", headers: { ...SRV(SB_SERVICE), "Content-Type": "application/json", Prefer: "return=minimal" }, body: JSON.stringify({ user_id: user.id, section: "topics" }) }); } catch (e) {}
   res.statusCode = 200; res.setHeader("Content-Type", "application/json"); res.setHeader("Cache-Control", "no-store");
   res.end(JSON.stringify({ topics }));
 }
 
 module.exports = async (req, res) => {
   if (req.method !== "POST") return fail(res, 405, "Method not allowed.");
-  if (!AI_KEY || !SB_SERVICE) return fail(res, 500, "The Project AI Studio is not set up yet. Please tell the NUASA admin.");
+  if (!GROQ_KEY || !SB_SERVICE) return fail(res, 500, "The Project AI Studio is not set up yet. Please tell the NUASA admin.");
 
   // 1. Must be a signed-in user
   const token = (req.headers.authorization || "").replace(/^Bearer\s+/i, "");
   if (!token) return fail(res, 401, "Please sign in to use the Project AI Studio.");
   let user;
   try {
-    const u = await fetch(SB_URL + "/auth/v1/user", { headers: { apikey: SB_ANON, Authorization: "Bearer " + token } });
+    const u = await sbFetch(SB_URL + "/auth/v1/user", { headers: { apikey: SB_ANON, Authorization: "Bearer " + token } });
     if (!u.ok) return fail(res, 401, "Your session expired. Please sign in again.");
     user = await u.json();
   } catch (e) { return fail(res, 502, "Could not verify your sign-in. Try again."); }
@@ -196,8 +154,8 @@ module.exports = async (req, res) => {
   const H = { ...SRV(SB_SERVICE), Prefer: "count=exact", Range: "0-0" };
   try {
     const [mine, all] = await Promise.all([
-      fetch(`${SB_URL}/rest/v1/project_usage?user_id=eq.${user.id}&section=neq.topics&created_at=gte.${since}&select=id`, { headers: H }),
-      fetch(`${SB_URL}/rest/v1/project_usage?created_at=gte.${since}&select=id`, { headers: H }),
+      sbFetch(`${SB_URL}/rest/v1/project_usage?user_id=eq.${user.id}&section=neq.topics&created_at=gte.${since}&select=id`, { headers: H }),
+      sbFetch(`${SB_URL}/rest/v1/project_usage?created_at=gte.${since}&select=id`, { headers: H }),
     ]);
     if (!mine.ok || !all.ok) throw new Error("count");
     if (total(mine) >= USER_LIMIT) return fail(res, 429, "You have used today's Project AI Studio draft. Please come back tomorrow.");
@@ -227,12 +185,12 @@ ${prior || "(nothing yet)"}`;
     up = out.r; prov = out.p;
   } catch (e) { return fail(res, 502, "The assistant could not be reached. Try again."); }
   if (!up.ok) {
-    console.error("gemini", up.status, await up.text().catch(() => ""));
-    return fail(res, up.status === 429 ? 429 : 502, up.status === 429 ? "The free AI quota is busy right now. Wait a minute and tap Continue." : "The assistant is unavailable right now (code " + up.status + "). Check the model name and API key, then try again.");
+    console.error("groq", up.status, await up.text().catch(() => ""));
+    return fail(res, up.status === 429 ? 429 : 502, up.status === 429 ? "The free AI quota is busy right now. Wait a minute and tap Continue." : "The assistant is unavailable right now (code " + up.status + "). Please try again shortly.");
   }
 
   // Count this call only now that the AI accepted it, so failed attempts do not use up a student's daily draft.
-  try { await fetch(SB_URL + "/rest/v1/project_usage", { method: "POST", headers: { ...SRV(SB_SERVICE), "Content-Type": "application/json", Prefer: "return=minimal" }, body: JSON.stringify({ user_id: user.id, section: body.section }) }); } catch (e) {}
+  try { await sbFetch(SB_URL + "/rest/v1/project_usage", { method: "POST", headers: { ...SRV(SB_SERVICE), "Content-Type": "application/json", Prefer: "return=minimal" }, body: JSON.stringify({ user_id: user.id, section: body.section }) }); } catch (e) {}
 
   res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-cache, no-transform", "X-Accel-Buffering": "no" });
   const dec = new TextDecoder();
@@ -247,13 +205,8 @@ ${prior || "(nothing yet)"}`;
         if (line.slice(5).trim() === "[DONE]") continue;
         let ev; try { ev = JSON.parse(line.slice(5)); } catch (e) { continue; }
         if (ev.error) throw new Error("upstream");
-        if (prov === "groq") {
-          const t = ev.choices && ev.choices[0] && ev.choices[0].delta && ev.choices[0].delta.content;
-          if (t) res.write(t);
-          continue;
-        }
-        const parts = ev.candidates && ev.candidates[0] && ev.candidates[0].content && ev.candidates[0].content.parts;
-        if (parts) for (const p of parts) if (p.text) res.write(p.text);
+        const t = ev.choices && ev.choices[0] && ev.choices[0].delta && ev.choices[0].delta.content;
+        if (t) res.write(t);
       }
     }
     res.end();
