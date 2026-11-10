@@ -31,7 +31,7 @@
       if (!l.trim()) continue;
       let m;
       if ((m = l.match(/^\[\[TB([^\]]*)\]\]\s*$/))) {
-        const opt = m[1], kind = /\bfig\b/.test(opt) ? "fig" : /\bgrid\b/.test(opt) ? "grid" : "open", w = (opt.match(/\bw=([\d.,]+)/) || [])[1], sp = (opt.match(/\bsplit=(\d+)/) || [])[1], rows = [];
+        const opt = m[1], kind = /\bgrid\b/.test(opt) ? "grid" : "open", w = (opt.match(/\bw=([\d.,]+)/) || [])[1], sp = (opt.match(/\bsplit=(\d+)/) || [])[1], rows = [];
         while (i < lines.length && !/^\[\[\/TB\]\]/.test(lines[i])) { if (lines[i].trim()) rows.push(lines[i].split("|").map(c => c.trim())); i++; } i++;
         out.push({ t: "tb", kind, w: w ? w.split(",").map(Number) : null, split: sp ? +sp : 0, rows }); continue;
       }
@@ -39,9 +39,7 @@
         const rows = [l]; while (i < lines.length && /^\s*\|.*\|\s*$/.test(lines[i])) rows.push(lines[i++]);
         out.push({ t: "tb", kind: "open", w: null, split: 0, rows: rows.filter(r => !/^\s*\|?[\s:\-|]+\|?\s*$/.test(r)).map(r => r.replace(/^\s*\||\|\s*$/g, "").split("|").map(c => c.trim())) }); continue;
       }
-      if ((m = l.match(/^\[\[(CH|CT|H2|H3|H4|LI|BL|EQ|TC|TN|TS|CTR|CTRN|RF|PH|PL|FC)\]\]\s*(.*)$/))) { push(m[1].toLowerCase(), m[2]); continue; }
-      if ((m = l.match(/^\[\[SEC\s+(\w+)\]\]/))) { out.push({ t: "sec", k: m[1] }); continue; }
-      if ((m = l.match(/^\[\[(TOC|LOF|LOT|LOA)\]\]/))) { out.push({ t: "toc", k: m[1] }); continue; }
+      if ((m = l.match(/^\[\[(CH|CT|H2|H3|LI|BL|EQ|TC|TS|CTR|CTRN|RF)\]\]\s*(.*)$/))) { push(m[1].toLowerCase(), m[2]); continue; }
       if (/^\[\[PB\]\]/.test(l)) { out.push({ t: "pb" }); continue; }
       if (/^\[\[SP\]\]/.test(l)) { out.push({ t: "sp" }); continue; }
       if ((m = l.match(/^#{1}\s+(.*)/))) { push(/^CHAPTER\s/i.test(m[1]) ? "ch" : "ct", m[1]); continue; }
@@ -64,9 +62,7 @@
         }
       } else res.push(b);
     }
-    const fin = [];
-    for (let k = 0; k < res.length; k++) { const b = res[k]; if (b.t === "ch" && res[k + 1] && res[k + 1].t === "ct") { fin.push(Object.assign({}, b, { ct: res[k + 1].x })); k++; } else fin.push(b); }
-    return fin;
+    return res;
   }
 
   /* ---------- inline formatting ---------- */
@@ -80,35 +76,11 @@
   const numHTML = x => { const m = String(x).match(/^(\d+(?:\.\d+)+)\s+(.*)$/); return m ? '<span class="dp-n">' + esc(m[1]) + "</span>" + inlHTML(m[2]) : inlHTML(x); };
   const plain = s => inl(s).map(r => r.text).join("");
 
-  /* ---------- contents lists (table of contents, lists of figures, tables, appendices) ---------- */
-  function entriesOf(blocks) {
-    const toc = [], lof = [], lot = [], loa = []; let ti = 0, fi = 0, ai = 0;
-    blocks.forEach((b, k) => {
-      if (b.t === "ph") toc.push({ lv: 1, x: plain(b.x), bm: "_PJH" + k });
-      else if (b.t === "ch") toc.push({ lv: 1, x: plain(b.x) + (b.ct ? ": " + plain(b.ct) : ""), bm: "_PJH" + k });
-      else if (b.t === "h2") toc.push({ lv: 2, x: plain(b.x), bm: "_PJH" + k });
-      else if (b.t === "h3") toc.push({ lv: 3, x: plain(b.x), bm: "_PJH" + k });
-      else if (b.t === "h4") toc.push({ lv: 4, x: plain(b.x), bm: "_PJH" + k });
-      if (b.t === "tc" && !/Cont\u2019d\.?\s*$/.test(b.x)) lot.push({ x: plain(b.x), bm: "_PJT" + k });
-      if (b.t === "fc") lof.push({ x: plain(b.x), bm: "_PJF" + k });
-      if (b.t === "ctr" && /^APPENDIX [A-Z]\s*$/i.test(b.x)) { const nx = blocks[k + 1]; loa.push({ x: plain(b.x) + (nx && nx.t === "ctr" ? ": " + plain(nx.x) : ""), bm: "_PJA" + k }); }
-    });
-    return { TOC: toc, LOF: lof, LOT: lot, LOA: loa };
-  }
-
   /* ---------- on-screen preview ---------- */
   function toHTML(blocks) {
-    const EN = entriesOf(blocks), LBL = { TOC: "", LOF: "", LOT: "", LOA: "" };
     return blocks.map(b => {
       switch (b.t) {
-        case "ch": return '<h2 class="dp-ch">' + inlHTML(b.x) + "</h2>" + (b.ct ? '<div class="dp-ct">' + inlHTML(b.ct) + "</div>" : "");
-        case "h4": return '<h4 class="dp-h3">' + numHTML(b.x) + "</h4>";
-        case "tn": return '<p class="dp-tc" style="margin-top:-4px!important">' + inlHTML(b.x) + "</p>";
-        case "fc": return '<p class="dp-tc" style="text-align:center">' + inlHTML(b.x) + "</p>";
-        case "ph": return '<div class="dp-ct dp-ph">' + inlHTML(b.x) + "</div>";
-        case "pl": return '<p class="dp-pl">' + inlHTML(b.x) + "</p>";
-        case "sec": return "";
-        case "toc": return '<div class="dp-toc">' + EN[b.k].map(e => '<p class="dp-tl l' + (e.lv || 1) + '">' + esc(e.x) + "</p>").join("") + (EN[b.k].length ? '<p class="dp-ts">Page numbers appear when you open the Word file and choose Yes to update fields.</p>' : "") + "</div>";
+        case "ch": return '<h2 class="dp-ch">' + inlHTML(b.x) + "</h2>";
         case "ct": return '<div class="dp-ct">' + inlHTML(b.x) + "</div>";
         case "h2": return '<h3 class="dp-h2">' + numHTML(b.x) + "</h3>";
         case "h3": return '<h4 class="dp-h3">' + numHTML(b.x) + "</h4>";
@@ -123,7 +95,6 @@
         case "pb": return '<div class="dp-pb"></div>';
         case "sp": return '<div class="dp-sp"></div>';
         case "tb": {
-          if (b.kind === "fig") return '<div class="dp-tw"><table class="dp-tb fig"><colgroup>' + b.w.map(w => '<col style="width:' + w + '%">').join("") + "</colgroup>" + b.rows.map((r, ri) => "<tr>" + r.map((c, ci) => c === "^" ? "" : "<td" + (ci === 2 && ri === 0 ? ' rowspan="' + b.rows.length + '"' : "") + ' class="c"' + (ci !== 1 ? ' style="border:1px solid currentColor;padding:8px"' : ' style="font-size:20px"') + ">" + inlHTML(c) + "</td>").join("") + "</tr>").join("") + "</table></div>";
           const n = b.rows[0] ? b.rows[0].length : 1, W = b.w && b.w.length === n ? b.w : Array(n).fill(100 / n);
           return '<div class="dp-tw"><table class="dp-tb ' + b.kind + '"><colgroup>' + W.map(w => '<col style="width:' + w + '%">').join("") + "</colgroup>" + b.rows.map((r, ri) => "<tr>" + W.map((_, ci) => (ri ? "<td" : "<th") + (b.kind === "grid" && ci ? ' class="c"' : "") + ">" + inlHTML(r[ci] || "") + (ri ? "</td>" : "</th>")).join("") + "</tr>").join("") + "</table></div>";
         }
@@ -132,7 +103,7 @@
     }).join("");
   }
   function toText(blocks) {
-    return blocks.map(b => b.t === "tb" ? b.rows.map(r => r.join("\t")).join("\n") : b.t === "pb" || b.t === "sec" || b.t === "toc" ? "\n" : b.t === "sp" ? "" : (b.t === "bl" ? "\u00b7 " : "") + plain(b.x || "")).join("\n\n");
+    return blocks.map(b => b.t === "tb" ? b.rows.map(r => r.join("\t")).join("\n") : b.t === "pb" ? "\n" : b.t === "sp" ? "" : (b.t === "bl" ? "\u00b7 " : "") + plain(b.x || "")).join("\n\n");
   }
 
   /* ---------- DOCX ---------- */
@@ -155,20 +126,7 @@
     const m = String(text).match(/^(\d+(?:\.\d+)+)\s+(.*)$/); if (!m) return runs(text);
     return '<w:r><w:t xml:space="preserve">' + m[1] + "</w:t></w:r><w:r><w:tab/></w:r>" + runs(m[2]);
   }
-  function figXML(b) {
-    const n = b.rows[0].length, W0 = b.w && b.w.length === n ? b.w : Array(n).fill(100 / n), sum = W0.reduce((a, c) => a + c, 0), W = W0.map(w => Math.round(w / sum * TEXTW)), nil = k => "<w:" + k + ' w:val="nil"/>', bx = k => "<w:" + k + ' w:val="single" w:sz="8" w:space="0" w:color="000000"/>';
-    let x = '<w:tbl><w:tblPr><w:tblW w:w="' + TEXTW + '" w:type="dxa"/><w:jc w:val="center"/><w:tblBorders>' + ["top", "left", "bottom", "right", "insideH", "insideV"].map(nil).join("") + '</w:tblBorders><w:tblLayout w:type="fixed"/><w:tblCellMar><w:top w:w="100" w:type="dxa"/><w:left w:w="100" w:type="dxa"/><w:bottom w:w="100" w:type="dxa"/><w:right w:w="100" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid>' + W.map(w => '<w:gridCol w:w="' + w + '"/>').join("") + "</w:tblGrid>";
-    b.rows.forEach((r, ri) => {
-      x += "<w:tr><w:trPr><w:cantSplit/></w:trPr>";
-      W.forEach((w, ci) => {
-        const c = r[ci] || "", box = ci !== 1 && !!c, vm = ci === 2 ? (ri === 0 ? '<w:vMerge w:val="restart"/>' : c === "^" ? "<w:vMerge/>" : "") : "";
-        x += '<w:tc><w:tcPr><w:tcW w:w="' + w + '" w:type="dxa"/>' + vm + (box ? "<w:tcBorders>" + bx("top") + bx("left") + bx("bottom") + bx("right") + "</w:tcBorders>" : "") + '<w:vAlign w:val="center"/></w:tcPr>' + para("PJTable", c === "^" ? "" : runs(c, { b: ci !== 1, sz: ci === 1 ? 32 : 22 }), '<w:jc w:val="center"/>') + "</w:tc>";
-      }); x += "</w:tr>";
-    });
-    return x + "</w:tbl>" + para("PJTableGap", "");
-  }
   function tableXML(b) {
-    if (b.kind === "fig") return figXML(b);
     const n = b.rows[0].length, W0 = b.w && b.w.length === n ? b.w : Array(n).fill(100 / n), sum = W0.reduce((a, c) => a + c, 0), W = W0.map(w => Math.round(w / sum * TEXTW));
     const keep = b.rows.length <= 14, bd = (k, v) => '<w:' + k + ' w:val="' + v + '" w:sz="4" w:space="0" w:color="000000"/>', open = b.kind === "open";
     const tblB = open ? bd("top", "single") + bd("left", "nil") + bd("bottom", "single") + bd("right", "nil") + bd("insideH", "nil") + bd("insideV", "nil") : bd("top", "single") + bd("left", "single") + bd("bottom", "single") + bd("right", "single") + bd("insideH", "single") + bd("insideV", "single");
@@ -182,51 +140,29 @@
     });
     return x + "</w:tbl>" + para("PJTableGap", "");
   }
-  let BMID = 100;
-  const bm = (name, inner) => { const id = ++BMID; return '<w:bookmarkStart w:id="' + id + '" w:name="' + name + '"/>' + inner + '<w:bookmarkEnd w:id="' + id + '"/>'; };
-  const FLD = (instr, cached) => '<w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> ' + instr + ' </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>' + (cached || "") + '</w:t></w:r><w:r><w:fldChar w:fldCharType="end"/></w:r>';
-  function listXML(kind, ent) {
-    const o = [];
-    ent.forEach((e, i) => {
-      const lv = kind === "TOC" ? e.lv : 1, st = kind === "TOC" ? "TOC" + lv : "PJListEntry";
-      o.push("<w:p><w:pPr><w:pStyle w:val=\"" + st + "\"/></w:pPr>" + (kind === "TOC" && !i ? '<w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> TOC \\o "1-4" \\h \\z \\u </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r>' : "") + runs(e.x) + "<w:r><w:tab/></w:r>" + FLD("PAGEREF " + e.bm + " \\h", "") + "</w:p>");
-    });
-    if (kind === "TOC" && ent.length) o.push('<w:p><w:pPr><w:pStyle w:val="PJTableGap"/></w:pPr><w:r><w:fldChar w:fldCharType="end"/></w:r></w:p>');
-    return o.join("");
-  }
-  function secXML(kind) { /* none: cover pages, no page number shown; roman: preliminary pages; the last section (decimal) closes the body */
-    return '<w:p><w:pPr><w:sectPr><w:headerReference w:type="default" r:id="' + (kind === "none" ? "rId3" : "rId2") + '"/><w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0"/><w:pgNumType w:fmt="lowerRoman"' + (kind === "none" ? ' w:start="1"' : "") + '/><w:cols w:space="720"/></w:sectPr></w:pPr></w:p>';
-  }
   function bodyXML(blocks) {
-    const o = [], EN = entriesOf(blocks); PENDING_PB = false; BMID = 100; let hasSec = false;
+    const o = []; PENDING_PB = false;
     blocks.forEach((b, k) => {
       switch (b.t) {
-        case "ch": o.push(para("Heading1", bm("_PJH" + k, runs(b.x) + (b.ct ? "<w:r><w:br/></w:r>" + runs(b.ct) : "")))); break;
+        case "ch": o.push(para("Heading1", runs(b.x))); break;
         case "ct": o.push(para("PJChapterTitle", runs(b.x))); break;
-        case "ph": o.push(para("PJPrelim", bm("_PJH" + k, runs(b.x)))); break;
-        case "h2": o.push(para("Heading2", bm("_PJH" + k, headingRuns(b.x)))); break;
-        case "h3": o.push(para("Heading3", bm("_PJH" + k, headingRuns(b.x)))); break;
-        case "h4": o.push(para("Heading4", bm("_PJH" + k, headingRuns(b.x)))); break;
+        case "h2": o.push(para("Heading2", headingRuns(b.x))); break;
+        case "h3": o.push(para("Heading3", headingRuns(b.x))); break;
         case "li": o.push(para("PJList", runs(b.x))); break;
         case "bl": o.push(para("PJList", runs("\u00b7 " + b.x))); break;
         case "rf": o.push(para("PJReference", runs(b.x))); break;
         case "eq": o.push(para("PJEquation", runs(b.x))); break;
-        case "tc": o.push(para("PJCaption", bm("_PJT" + k, runs(b.x, { b: true })))); break;
-        case "tn": o.push(para("PJCaptionSub", runs(b.x, { b: true }))); break;
-        case "fc": o.push(para("PJCaptionFig", bm("_PJF" + k, runs(b.x, { b: true })))); break;
+        case "tc": o.push(para("PJCaption", runs(b.x, { b: true }))); break;
         case "ts": o.push(para("PJSource", runs(b.x))); break;
-        case "ctr": o.push(para("PJCentre", /^APPENDIX [A-Z]\s*$/i.test(b.x) ? bm("_PJA" + k, runs(b.x, { b: true })) : runs(b.x, { b: true }))); break;
+        case "ctr": o.push(para("PJCentre", runs(b.x, { b: true }))); break;
         case "ctrn": o.push(para("PJCentre", runs(b.x))); break;
-        case "pl": o.push(para("PJPlain", runs(b.x))); break;
         case "sp": o.push(para("PJCentre", "")); break;
         case "pb": PENDING_PB = true; break;
-        case "sec": o.push(secXML(b.k)); hasSec = true; PENDING_PB = false; break;
-        case "toc": o.push(listXML(b.k, EN[b.k])); break;
         case "tb": if (b.rows.length) { if (PENDING_PB) o.push(para("PJTableGap", "")); o.push(tableXML(b)); } break;
         default: o.push(para("PJBody", runs(b.x)));
       }
     });
-    return { xml: o.join(""), hasSec };
+    return o.join("");
   }
   function stylesXML() {
     const st = (id, name, based, ppr, rpr, extra) => '<w:style w:type="paragraph" w:styleId="' + id + '"><w:name w:val="' + name + '"/>' + (based ? '<w:basedOn w:val="' + based + '"/>' : "") + (extra || "") + '<w:qFormat/><w:pPr>' + (ppr || "") + "</w:pPr><w:rPr>" + (rpr || "") + "</w:rPr></w:style>";
@@ -236,17 +172,10 @@
       + '<w:style w:type="character" w:default="1" w:styleId="DefaultParagraphFont"><w:name w:val="Default Paragraph Font"/><w:uiPriority w:val="1"/><w:semiHidden/></w:style>'
       + '<w:style w:type="table" w:default="1" w:styleId="TableNormal"><w:name w:val="Normal Table"/><w:uiPriority w:val="99"/><w:semiHidden/><w:tblPr><w:tblInd w:w="0" w:type="dxa"/><w:tblCellMar><w:top w:w="0" w:type="dxa"/><w:left w:w="108" w:type="dxa"/><w:bottom w:w="0" w:type="dxa"/><w:right w:w="108" w:type="dxa"/></w:tblCellMar></w:tblPr></w:style>'
       + st("Header", "header", "Normal", '<w:tabs><w:tab w:val="center" w:pos="4680"/><w:tab w:val="right" w:pos="9360"/></w:tabs>', "")
-      + st("Heading1", "heading 1", "Normal", '<w:keepNext/><w:pageBreakBefore/><w:spacing w:before="0" w:after="240" w:line="480" w:lineRule="auto"/><w:jc w:val="center"/><w:outlineLvl w:val="0"/>', "<w:b/><w:bCs/><w:sz w:val=\"28\"/><w:szCs w:val=\"28\"/>", '<w:next w:val="PJBody"/>')
+      + st("Heading1", "heading 1", "Normal", '<w:keepNext/><w:pageBreakBefore/><w:spacing w:before="0" w:after="0" w:line="480" w:lineRule="auto"/><w:jc w:val="center"/><w:outlineLvl w:val="0"/>', "<w:b/><w:bCs/><w:sz w:val=\"28\"/><w:szCs w:val=\"28\"/>", '<w:next w:val="PJChapterTitle"/>')
       + st("PJChapterTitle", "Chapter Title", "Normal", '<w:keepNext/><w:spacing w:before="0" w:after="240" w:line="480" w:lineRule="auto"/><w:jc w:val="center"/>', "<w:b/><w:bCs/><w:sz w:val=\"28\"/><w:szCs w:val=\"28\"/>")
       + st("Heading2", "heading 2", "Normal", '<w:keepNext/><w:tabs><w:tab w:val="left" w:pos="720"/></w:tabs><w:spacing w:before="120" w:after="0" w:line="480" w:lineRule="auto"/><w:jc w:val="both"/><w:outlineLvl w:val="1"/>', "<w:b/><w:bCs/>", '<w:next w:val="PJBody"/>')
       + st("Heading3", "heading 3", "Normal", '<w:keepNext/><w:tabs><w:tab w:val="left" w:pos="720"/></w:tabs><w:spacing w:before="0" w:after="0" w:line="480" w:lineRule="auto"/><w:jc w:val="both"/><w:outlineLvl w:val="2"/>', "<w:b/><w:bCs/>", '<w:next w:val="PJBody"/>')
-      + st("Heading4", "heading 4", "Normal", '<w:keepNext/><w:tabs><w:tab w:val="left" w:pos="720"/></w:tabs><w:spacing w:before="0" w:after="0" w:line="480" w:lineRule="auto"/><w:jc w:val="both"/><w:outlineLvl w:val="3"/>', "<w:b/><w:bCs/>", '<w:next w:val="PJBody"/>')
-      + st("PJPrelim", "Preliminary Heading", "Normal", '<w:keepNext/><w:pageBreakBefore/><w:spacing w:before="0" w:after="240" w:line="480" w:lineRule="auto"/><w:jc w:val="center"/><w:outlineLvl w:val="0"/>', "<w:b/><w:bCs/><w:sz w:val=\"28\"/><w:szCs w:val=\"28\"/>")
-      + st("PJPlain", "Project Plain", "Normal", '<w:spacing w:before="0" w:after="100" w:line="276" w:lineRule="auto"/><w:jc w:val="left"/>', "")
-      + st("PJCaptionSub", "Project Table Caption 2", "Normal", '<w:keepNext/><w:spacing w:before="0" w:after="120" w:line="240" w:lineRule="auto"/><w:jc w:val="left"/>', "<w:b/><w:bCs/>")
-      + st("PJCaptionFig", "Project Figure Caption", "Normal", '<w:spacing w:before="120" w:after="0" w:line="240" w:lineRule="auto"/><w:jc w:val="left"/>', "<w:b/><w:bCs/>")
-      + [1, 2, 3, 4].map(n => st("TOC" + n, "toc " + n, "Normal", '<w:tabs><w:tab w:val="right" w:leader="dot" w:pos="9350"/></w:tabs><w:spacing w:before="0" w:after="80" w:line="276" w:lineRule="auto"/><w:ind w:left="' + (n - 1) * 360 + '" w:right="560"/>', n === 1 ? "<w:b/><w:bCs/>" : "")).join("")
-      + st("PJListEntry", "Project List Entry", "Normal", '<w:tabs><w:tab w:val="right" w:leader="dot" w:pos="9350"/></w:tabs><w:spacing w:before="0" w:after="100" w:line="276" w:lineRule="auto"/><w:ind w:right="560"/>', "")
       + st("PJBody", "Project Body", "Normal", dbl + '<w:ind w:firstLine="720"/><w:jc w:val="both"/>', "")
       + st("PJList", "Project List", "Normal", dbl + '<w:jc w:val="both"/>', "")
       + st("PJReference", "Project Reference", "Normal", '<w:spacing w:before="0" w:after="160" w:line="360" w:lineRule="auto"/><w:ind w:left="720" w:hanging="720"/><w:jc w:val="both"/>', "")
@@ -280,15 +209,13 @@
   }
   function toDocx(blocks, meta) {
     meta = meta || {}; const H = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
-    const bd = bodyXML(blocks), hdrRef = '<w:headerReference w:type="default" r:id="rId2"/>';
-    const doc = H + "<w:document " + NS + "><w:body>" + bd.xml + "<w:sectPr>" + hdrRef + '<w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0"/>' + (bd.hasSec ? '<w:pgNumType w:fmt="decimal" w:start="1"/>' : "") + '<w:cols w:space="720"/></w:sectPr></w:body></w:document>';
+    const doc = H + "<w:document " + NS + "><w:body>" + bodyXML(blocks) + '<w:sectPr><w:headerReference w:type="default" r:id="rId2"/><w:headerReference w:type="first" r:id="rId3"/><w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0"/><w:cols w:space="720"/><w:titlePg/></w:sectPr></w:body></w:document>';
     return zip([
-      { name: "[Content_Types].xml", data: H + '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/><Override PartName="/word/header1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/><Override PartName="/word/header2.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/><Override PartName="/word/settings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"/><Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/></Types>' },
+      { name: "[Content_Types].xml", data: H + '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/><Override PartName="/word/header1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/><Override PartName="/word/header2.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/><Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/></Types>' },
       { name: "_rels/.rels", data: H + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/></Relationships>' },
       { name: "docProps/core.xml", data: H + '<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><dc:title>' + esc(meta.title || "Project") + "</dc:title><dc:creator>NUASA Project AI</dc:creator></cp:coreProperties>" },
-      { name: "word/_rels/document.xml.rels", data: H + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header1.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header2.xml"/><Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings" Target="settings.xml"/></Relationships>' },
+      { name: "word/_rels/document.xml.rels", data: H + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header1.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header2.xml"/></Relationships>' },
       { name: "word/styles.xml", data: stylesXML() },
-      { name: "word/settings.xml", data: H + "<w:settings " + NS + '><w:updateFields w:val="true"/><w:defaultTabStop w:val="720"/><w:compat><w:compatSetting w:name="compatibilityMode" w:uri="http://schemas.microsoft.com/office/word" w:val="15"/></w:compat></w:settings>' },
       { name: "word/header1.xml", data: H + "<w:hdr " + NS + '><w:p><w:pPr><w:pStyle w:val="Header"/><w:jc w:val="right"/></w:pPr>' + pageField + "</w:p></w:hdr>" },
       { name: "word/header2.xml", data: H + "<w:hdr " + NS + '><w:p><w:pPr><w:pStyle w:val="Header"/></w:pPr></w:p></w:hdr>' },
       { name: "word/document.xml", data: doc },
