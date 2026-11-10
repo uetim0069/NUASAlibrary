@@ -1,5 +1,5 @@
 /* NUASA Library service worker. Bump VERSION to force clients to refresh cached files. */
-const VERSION = "v21";
+const VERSION = "v22";
 const SHELL = "nuasa-shell-" + VERSION;
 const ASSETS = "nuasa-assets-" + VERSION;
 const FILES = "nuasa-files"; // files students saved for offline. Never deleted by updates.
@@ -7,7 +7,7 @@ const PRECACHE = ["/", "/offline.html", "/manifest.webmanifest", "/icons/icon-19
 // Public, read-only library data that may be shown offline (never user, profile, pending-review or CBT question data: CBT is a paid feature, so it always goes to the network).
 const DATA = /^\/rest\/v1\/(courses|notebooks|prep_classes|opportunities|resources)(\?|$)/;
 
-const EXTRA = ["/pj-home.css", "/pj-study.js", "/pj-doc.js", "/img/thumb-excel.jpg?v=4", "/img/thumb-quickbooks.jpg?v=4", "/img/certificate-sample-excel.jpg?v=3", "/img/certificate-sample-quickbooks.jpg?v=3"]; // Project AI files, cached one by one so a missing upload can never block an update
+const EXTRA = ["/pj-home.css", "/pj-study.js", "/pj-doc.js"]; // Project AI files, cached one by one so a missing upload can never block an update
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(SHELL).then(c => c.addAll(PRECACHE).then(() => Promise.all(EXTRA.map(u => c.add(u).catch(() => {}))))).then(() => self.skipWaiting()));
 });
