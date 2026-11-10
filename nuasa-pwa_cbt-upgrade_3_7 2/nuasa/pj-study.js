@@ -65,10 +65,10 @@
   /* ---------- markup helpers (see pj-doc.js for the grammar) ---------- */
   const row = a => a.join(" | ");
   function tableBlock(opts) { /* {no,title,kind,w,head,rows,source,split} */
-    const out = ["", "[[TC]] Table " + opts.no + ": " + opts.title, "[[TB " + opts.kind + (opts.w ? " w=" + opts.w.join(",") : "") + (opts.split ? " split=" + opts.split : "") + "]]", row(opts.head)];
+    const out = ["", "[[TC]] Table " + opts.no + ": " + opts.title].concat(opts.sub ? ["[[TN]] " + opts.sub] : [], ["[[TB " + opts.kind + (opts.w ? " w=" + opts.w.join(",") : "") + (opts.split ? " split=" + opts.split : "") + "]]", row(opts.head)]);
     opts.rows.forEach(r => out.push(row(r))); out.push("[[/TB]]", "[[TS]] " + opts.source, ""); return out.join("\n");
   }
-  const SRC_RESEARCHER = "Source: Researcher’s compilation (2026).";
+  const SRC_RESEARCHER = "Source: Researcher’s Compilation (2026).";
   const SRC_ILLUS = "Source: Illustrative sample data, to be replaced with the researcher’s field survey results (2026).";
   const SRC_ILLUS_PANEL = "Source: Illustrative sample data, to be replaced with the researcher’s extraction from annual reports (2026).";
 
@@ -108,7 +108,19 @@
     S.ph = Object.assign({}, S.tables, { OBJ: "\n" + L.obj.join("\n") + "\n", RQ: "\n" + L.rq.join("\n") + "\n", HYP: "\n" + L.hyp.join("\n") + "\n",
       EQ_CHI: "\n[[EQ]] χ² = Σ (O − E)² / E\n" });
     L.hypl.forEach((h, j) => { S.ph["HYP_" + (j + 1)] = "\n" + h + "\n"; });
-    if (!post) S.ph.EQ_TARO = "\n[[EQ]] " + S.taro.formula + "\n[[EQ]] " + S.taro.calc + "\n";
+    if (!post) {
+      S.ph.EQ_TARO = "\n[[EQ]] " + S.taro.formula + "\n[[EQ]] " + S.taro.calc + "\n";
+      const sub = (c, i) => c + "i", xs = bp.ivs.map(v => v.abbr);
+      S.ph.EQ_GEN = "\n[[EQ]] Y = f(X1, X2, X3, ..., Xn)     Equation 3.1\n[[EQ]] Y = α0 + β1X1 + β2X2 + β3X3 + ... + βnXn + ε     Equation 3.2\n";
+      S.ph.EQ_SPEC = "\n[[EQ]] " + bp.dv.abbr + " = f(" + xs.join(", ") + ")     Equation 3.3\n[[EQ]] " + bp.dv.abbr + "i = α0 + " + xs.map((x, j) => "β" + (j + 1) + x + "i").join(" + ") + " + εi     Equation 3.4\n";
+      S.ph.FIG_MODEL = "\n[[TB fig w=40,16,40]]\n" + bp.ivs.map((v, j) => v.name + " (" + v.abbr + ") | → | " + (j === 0 ? bp.dv.name + " (" + bp.dv.abbr + ")" : "^")).join("\n") + "\n[[/TB]]\n[[FC]] Figure 3.1: Conceptual Specification of the Model of the Study\n[[TS]] Source: Researcher’s Conceptualization (2026)\n";
+      bp.ivs.forEach((v, j) => {
+        const c = S.chi[j], num = f2(c.x2), gt = c.rej;
+        S.ph["HYPH_" + (j + 1)] = "\n**Hypothesis " + (j + 1) + ": " + v.name + " (" + v.abbr + ")**\n";
+        S.ph["CHI_INTRO_" + (j + 1)] = "\nResponses to the statement “" + c.test.replace(/[.]\s*$/, "") + ".” were used to test this hypothesis. The observed frequencies obtained from the " + S.R + " respondents are presented and analyzed below using the Chi-square (χ²) statistical technique.\n";
+        S.ph["CHI_TXT_" + (j + 1)] = "\nDecision Rule: Reject H0 if the calculated chi-square value is greater than the critical value; otherwise accept H0.\nDegree of freedom (df) = (r − 1) = 4 − 1 = 3. Critical value at 0.05 level of significance = 7.815. Calculated χ² = " + num + ".\nDecision: Since the calculated chi-square value is " + (gt ? "greater" : "less") + " than the critical (table) value, the null hypothesis (H0) is " + (gt ? "rejected and the alternate hypothesis (H1) is accepted" : "accepted and the alternate hypothesis (H1) is rejected") + ".\n";
+      });
+    }
     else S.ph.MODEL = "\n[[EQ]] " + bp.dv.abbr + "(it) = β0 + " + bp.ivs.map((v, j) => "β" + (j + 1) + v.abbr + "(it)").join(" + ") + " + β" + (m + 1) + "SIZE(it) + ε(it)\n";
     return S;
   }
@@ -127,11 +139,11 @@
       calc: "n = " + N + " / (1 + " + N + "(0.05)²) = " + N + " / (1 + " + trimNum(N * e * e, 4) + ") = " + N + " / " + trimNum(1 + N * e * e, 4) + " = " + f1(raw) + " ≈ " + n,
     };
     /* Chapter 3 tables */
-    S.nos.T3_VAR = "3.1"; S.nos.T3_SAMPLE = "3.2";
-    const varRows = bp.ivs.map(v => [v.name + " (" + v.abbr + ")", "Independent", v.definition, "4-point Likert-scale statements in Section B of the questionnaire", "Primary (Questionnaire)"]);
-    varRows.push([bp.dv.name + " (" + bp.dv.abbr + ")", "Dependent", bp.dv.definition, "4-point Likert-scale statements in Section B of the questionnaire; read alongside available financial records", "Primary (Questionnaire) and Secondary (financial records, where available)"]);
-    S.tables.T3_VAR = tableBlock({ no: "3.1", title: "Variable Definitions and Measurement", kind: "open", w: [18, 15, 26, 23, 18], head: ["Variable", "Type", "Definition", "Measurement", "Data Source"], rows: varRows, source: SRC_RESEARCHER });
-    S.tables.T3_SAMPLE = tableBlock({ no: "3.2", title: "Summary of Sample Distribution by " + bp.controlName, kind: "grid", w: [44, 28, 28], head: [bp.controlName, "Population", "Sample Size"], rows: strata.map((s, i) => [s, pop[i], alloc[i]]).concat([["Total", N, n]]), source: SRC_RESEARCHER });
+    S.nos.T3_SAMPLE = "3.1"; S.nos.T3_VAR = "3.2";
+    const varRows = [[bp.dv.name + " (" + bp.dv.abbr + ")", "Dependent", "Mean score of respondents’ ratings on the " + bp.dv.phrase + "-related items of the questionnaire (4-point Likert scale)", "N/A"]];
+    bp.ivs.forEach(v => varRows.push([v.name + " (" + v.abbr + ")", "Independent", "Mean score of respondents’ ratings on the items measuring " + v.phrase + " (4-point Likert scale)", v.expected === "-" ? "−" : "+"]));
+    S.tables.T3_SAMPLE = tableBlock({ no: "3.1", title: "Summary of Sample Distribution by " + bp.controlName, kind: "grid", w: [44, 28, 28], head: [bp.controlName, "Population", "Sample Size"], rows: strata.map((s, i) => [s, pop[i], alloc[i]]).concat([["Total", N, n]]), source: SRC_RESEARCHER });
+    S.tables.T3_VAR = tableBlock({ no: "3.2", title: "Measurement, Description of Variables and A Priori Expectation", kind: "open", w: [27, 13, 45, 15], head: ["Variable", "Type", "Measurement", "A Priori Expectation"], rows: varRows, source: SRC_RESEARCHER });
     /* Chapter 4 tables */
     let t = 0; const no = () => "4." + (++t);
     S.nos.T4_RETURN = no(); S.tables.T4_RETURN = tableBlock({ no: S.nos.T4_RETURN, title: "Questionnaire Administration and Return Rate", kind: "grid", w: [52, 24, 24], head: ["Category", "Number", "Percentage (%)"], rows: [["Copies administered", n, "100.0"], ["Copies returned and usable", R, f1(rate)], ["Copies not returned or rejected", nonresp, f1(100 - rate)]], source: SRC_ILLUS });
@@ -144,27 +156,25 @@
     const lk = (mu, s) => { const w = [1, 2, 3, 4].map(i => Math.exp(-((i - mu) ** 2) / (2 * s * s)) * (0.85 + rng.next() * 0.3)), c = splitInt(R, w, 0); return { SD: c[0], D: c[1], A: c[2], SA: c[3] }; };
     const chi = o => { const E = R / 4; return ["SA", "A", "D", "SD"].reduce((s, k) => s + (o[k] - E) ** 2 / E, 0); };
     const mn = o => (4 * o.SA + 3 * o.A + 2 * o.D + o.SD) / R;
-    const likertTable = (key, title, statements, mus, forceSig) => {
+    const likertTable = (key, title, statements, mus, forceSig, sub) => {
       const data = statements.map((s, i) => { let mu = mus[i], o = lk(mu, 0.9); if (forceSig && i === 3) { let g = 0; while (chi(o) < 9.5 && g++ < 12) { mu += 0.1; o = lk(mu, 0.8); } } return o; });
       S.nos[key] = no(); const means = data.map(mn), grand = mean(means);
-      S.tables[key] = tableBlock({ no: S.nos[key], title, kind: "grid", w: [37, 8, 8, 8, 8, 10, 10, 11], head: ["Statement", "SA", "A", "D", "SD", "Total", "Mean", "Decision"], rows: statements.map((s, i) => [s, data[i].SA, data[i].A, data[i].D, data[i].SD, R, f2(means[i]), means[i] >= 2.5 ? "Agreed" : "Disagreed"]).concat([["Grand mean", "", "", "", "", "", f2(grand), grand >= 2.5 ? "Agreed" : "Disagreed"]]), source: SRC_ILLUS });
+      S.tables[key] = tableBlock({ no: S.nos[key], title, sub, kind: "grid", w: [37, 8, 8, 8, 8, 10, 10, 11], head: ["Statement", "SA", "A", "D", "SD", "Total", "Mean", "Decision"], rows: statements.map((s, i) => [s, data[i].SA, data[i].A, data[i].D, data[i].SD, R, f2(means[i]), means[i] >= 2.5 ? "Agreed" : "Disagreed"]), source: SRC_ILLUS });
       return { data, means, grand };
     };
-    S.iv = bp.ivs.map((v, j) => likertTable("T4_IV" + (j + 1), "Responses on " + v.name + " (" + v.abbr + ") and Profitability", v.statements, [rng.range(3.0, 3.35), rng.range(2.95, 3.3), rng.range(2.8, 3.25), rng.range(3.1, 3.45)], true));
-    S.dvT = likertTable("T4_DV", "Responses on " + bp.dv.name + " (" + bp.dv.abbr + ")", bp.dv.statements, [rng.range(2.9, 3.3), rng.range(2.9, 3.3), rng.range(2.8, 3.25), rng.range(2.8, 3.25)], false);
+    S.iv = bp.ivs.map((v, j) => likertTable("T4_IV" + (j + 1), "Responses on " + v.name + " (" + v.abbr + ") and " + bp.dv.name, v.statements, [rng.range(3.0, 3.35), rng.range(2.95, 3.3), rng.range(2.8, 3.25), rng.range(3.1, 3.45)], true, "(Research Question " + ordinal[j] + ")"));
     S.chi = bp.ivs.map((v, j) => {
       const o = S.iv[j].data[3], E = R / 4, cats = ["SA", "A", "D", "SD"], rows = cats.map(c => { const d = o[c] - E; return { c, O: o[c], E, d, sq: d * d, v: d * d / E }; }), x2 = rows.reduce((s, r) => s + r.v, 0), rej = x2 > 7.815;
       S.nos["T4_CHI" + (j + 1)] = no();
-      S.tables["T4_CHI" + (j + 1)] = tableBlock({ no: S.nos["T4_CHI" + (j + 1)], title: "Chi-square Computation for Hypothesis " + (j + 1) + " (" + v.abbr + ")", kind: "grid", w: [20, 14, 14, 16, 18, 18], head: ["Response", "O", "E", "(O − E)", "(O − E)²", "(O − E)²/E"], rows: rows.map(r => [r.c, r.O, f1(r.E), f1(r.d), f2(r.sq), f2(r.v)]).concat([["Total", R, f1(R), "", "", f2(x2)]]), source: SRC_ILLUS });
+      S.tables["T4_CHI" + (j + 1)] = tableBlock({ no: S.nos["T4_CHI" + (j + 1)], title: "Chi-square Computation for Hypothesis " + (j + 1) + " (" + v.name + ")", kind: "grid", w: [20, 14, 14, 16, 18, 18], head: ["Response", "O", "E", "(O − E)", "(O − E)²", "(O − E)²/E"], rows: rows.map(r => [r.c, r.O, f1(r.E), f1(r.d), f2(r.sq), f2(r.v)]).concat([["Total", R, f1(R), "−", "−", f2(x2)]]), source: SRC_ILLUS });
       S.hyp.push({ x2, rej }); return { x2, rej, o, test: v.statements[3] };
     });
     S.facts = [
       "Population " + N + "; strata " + strata.map((s, i) => s + " " + pop[i]).join(", ") + "; Taro Yamane at 5% gives " + f1(raw) + ", rounded to a sample of " + n + "; sample by stratum " + strata.map((s, i) => s + " " + alloc[i]).join(", ") + ".",
       "Copies administered " + n + ", returned and usable " + R + " (" + f1(rate) + "%), not returned or rejected " + nonresp + ". Pilot study " + pilot + " respondents from a similar organisation; Cronbach's alpha " + f2(alpha) + ".",
-      "Table numbers: return rate " + S.nos.T4_RETURN + "; gender " + S.nos.T4_GENDER + "; age " + S.nos.T4_AGE + "; qualification " + S.nos.T4_QUAL + "; " + bp.controlName.toLowerCase() + " " + S.nos.T4_DEPT + "; years of service " + S.nos.T4_YEARS + "; " + bp.ivs.map((v, j) => v.abbr + " " + S.nos["T4_IV" + (j + 1)]).join("; ") + "; " + bp.dv.abbr + " " + S.nos.T4_DV + "; chi-square " + bp.ivs.map((v, j) => "H" + (j + 1) + " " + S.nos["T4_CHI" + (j + 1)]).join("; ") + ".",
+      "Table numbers: return rate " + S.nos.T4_RETURN + "; gender " + S.nos.T4_GENDER + "; age " + S.nos.T4_AGE + "; qualification " + S.nos.T4_QUAL + "; " + bp.controlName.toLowerCase() + " " + S.nos.T4_DEPT + "; years of service " + S.nos.T4_YEARS + "; " + bp.ivs.map((v, j) => v.abbr + " " + S.nos["T4_IV" + (j + 1)]).join("; ") + "; chi-square " + bp.ivs.map((v, j) => "H" + (j + 1) + " " + S.nos["T4_CHI" + (j + 1)]).join("; ") + ".",
       "Demographics: male " + gender[0] + " (" + pct(gender[0], R) + "%), female " + gender[1] + "; age groups " + age.join("/") + "; qualification " + qual.join("/") + "; " + bp.controlName.toLowerCase() + " " + respD.join("/") + "; service " + yrs.join("/") + ".",
       ...bp.ivs.map((v, j) => v.abbr + " grand mean " + f2(S.iv[j].grand) + " (" + (S.iv[j].grand >= 2.5 ? "Agreed" : "Disagreed") + "); item means " + S.iv[j].means.map(f2).join(", ") + "; chi-square " + f2(S.chi[j].x2) + " against critical value 7.815, so H0" + (j + 1) + " is " + (S.chi[j].rej ? "rejected" : "not rejected") + ".")
-      , bp.dv.abbr + " grand mean " + f2(S.dvT.grand) + "; item means " + S.dvT.means.map(f2).join(", ") + ".",
     ];
     return S;
   }
@@ -205,32 +215,46 @@
     return S;
   }
 
-  /* ---------- local sections: title page and appendix ---------- */
-  function titlePage(bp, form) {
+  /* ---------- local sections: preliminary pages and appendix (format measured from the department's complete sample project) ---------- */
+  function titlePage(bp, form) { /* cover page, title page, declaration, certification, dedication, acknowledgements */
     const d = form.details || {}, lvl = form.level || "", up = s => String(s || "").toUpperCase();
-    const degree = /Master/.test(lvl) ? "MASTER OF SCIENCE (M.Sc.) DEGREE IN ACCOUNTING" : "BACHELOR OF SCIENCE (B.Sc.) DEGREE IN ACCOUNTING";
-    const fac = cl(d.faculty, 80) || "Faculty of Business Administration";
-    return ["[[CTR]] " + up(bp.title), "[[SP]]", "[[SP]]", "[[CTRN]] BY", "[[SP]]", "[[CTR]] " + (cl(d.name, 80) ? up(cl(d.name, 80)) : "[YOUR FULL NAME]"), "[[CTRN]] REG. NO: " + (cl(d.regNo, 30) || "[YOUR REGISTRATION NUMBER]"), "[[SP]]", "[[SP]]",
-      "[[CTRN]] A PROJECT SUBMITTED TO THE DEPARTMENT OF ACCOUNTING, " + up(fac) + ", UNIVERSITY OF UYO, IN PARTIAL FULFILMENT OF THE REQUIREMENTS FOR THE AWARD OF " + degree, "[[SP]]", "[[SP]]",
-      "[[CTRN]] SUPERVISOR: " + (cl(d.supervisor, 80) || "[SUPERVISOR’S NAME]"), "[[SP]]", "[[CTRN]] " + up(cl(d.monthYear, 30) || "[MONTH AND YEAR]"), "[[PB]]"].join("\n");
+    const master = /Master/.test(lvl), degree = master ? "MASTER OF SCIENCE (M.Sc.) DEGREE IN ACCOUNTING" : "BACHELOR OF SCIENCE (BSc.) DEGREE IN ACCOUNTING", degShort = master ? "Master of Science (M.Sc.)" : "Bachelor of Science (B.Sc.)";
+    const fac = up(cl(d.faculty, 80) || "Faculty of Management Sciences"), facT = titleCase(fac.toLowerCase()).replace(/\bOf\b/, "of");
+    const nm = cl(d.name, 80) ? up(cl(d.name, 80)) : "[YOUR FULL NAME]", nmT = cl(d.name, 80) ? titleCase(cl(d.name, 80).toLowerCase()) : "[Your Full Name]", reg = cl(d.regNo, 30) || "[YOUR REGISTRATION NUMBER]", my = up(cl(d.monthYear, 30) || "[MONTH AND YEAR]");
+    const sup = cl(d.supervisor, 80) ? up(cl(d.supervisor, 80)) : "[SUPERVISOR’S NAME]", supT = cl(d.supervisor, 80) || "[Supervisor’s Name]", hod = cl(d.hod, 80) ? up(cl(d.hod, 80)) : "[HEAD OF DEPARTMENT’S NAME]", hodT = cl(d.hod, 80) || "[Head of Department’s Name]", ext = cl(d.examiner, 80) ? up(cl(d.examiner, 80)) : "[EXTERNAL EXAMINER’S NAME]";
+    const T = up(bp.title), dots = "………………………………";
+    const o = [];
+    o.push("[[SP]]", "[[CTR]] " + T, "[[SP]]", "[[SP]]", "[[CTR]] " + nm, "[[CTR]] " + reg, "[[SP]]", "[[SP]]", "[[CTR]] " + my, "[[PB]]");
+    o.push("[[CTR]] " + T, "[[SP]]", "[[CTR]] A RESEARCH PROJECT", "[[CTR]] BY", "[[CTR]] " + nm, "[[CTR]] " + reg, "[[CTR]] SUBMITTED TO", "[[CTR]] DEPARTMENT OF ACCOUNTING", "[[CTR]] " + fac, "[[CTR]] UNIVERSITY OF UYO",
+      "[[CTR]] IN PARTIAL FULFILLMENT OF THE REQUIREMENTS FOR THE AWARD OF " + degree, "[[CTR]] " + fac, "[[CTR]] UNIVERSITY OF UYO", "[[CTR]] " + my, "[[SEC none]]");
+    o.push("[[PH]] DECLARATION", "I, " + nmT + ", declare that this research on “" + T + "” is my own original work, carried out by me under the supervision of " + supT + " in the Department of Accounting, " + facT + ", University of Uyo. I further declare that this work has not been submitted, either in whole or in part, for the award of any degree or certificate in this or any other institution, and that all sources of information used have been duly acknowledged by means of references.",
+      "[[SP]]", "[[PL]] Signature: " + dots + "     Date: …………………………", "[[PL]] " + nm, "[[PL]] (" + reg + ")", "[[PB]]");
+    o.push("[[PH]] CERTIFICATION", "This is to certify that this research project titled “" + T + "” was carried out by " + nmT + " (" + reg + ") of the Department of Accounting, " + facT + ", University of Uyo, under my supervision, and is approved as meeting the requirements for the award of the " + degShort + " Degree in Accounting.", "[[SP]]");
+    [[sup, "(Project Supervisor)"], [hod, "(Head of Department)"], [ext, "(External Examiner)"]].forEach(([n, r]) => { o.push("[[PL]] " + n + "     " + dots, "[[PL]] " + r + "     Signature/Date", "[[PL]] Department of Accounting", "[[PL]] " + facT, "[[PL]] University of Uyo", "[[SP]]"); });
+    o.push("[[PB]]", "[[PH]] DEDICATION", "This work is dedicated to God Almighty, for sustaining me through every stage of this project, and to my family, whose love and support made the long hours possible.", "[[PB]]");
+    o.push("[[PH]] ACKNOWLEDGEMENTS", "My profound gratitude goes to my supervisor, " + supT + ", for his guidance and the rigour he demanded of this work at every stage.",
+      "I am grateful to the Head of Department, " + hodT + ", and to the lecturers of the Department of Accounting, " + facT + ", University of Uyo, for the foundation that made this research possible.",
+      "To my family, for their unwavering support, patience and encouragement throughout this journey.", "To my friends and coursemates, for their companionship and encouragement, and for the shared understanding of what a project like this demands.", "[[PB]]");
+    return o.join("\n");
   }
   function appendix(bp, S) {
-    const o = ["[[PB]]", "[[CTR]] APPENDIX A"];
+    const o = ["[[PH]] APPENDICES", "[[PB]]", "[[CTR]] APPENDIX A"];
     if (bp.design === "expost") {
       o.push("[[CTR]] PANEL DATA USED IN THE STUDY", "[[CTRN]] (Illustrative data, to be replaced with figures extracted from the sampled firms’ annual reports)", "");
       const P = S.panel; o.push("[[TC]] Table A1: Panel Data of Sampled Firms, " + S.start + " to " + S.end, "[[TB open w=" + [10, 10].concat(P.head.slice(2).map(() => 80 / (P.head.length - 2))).map(x => +x.toFixed(1)).join(",") + "]]", row(P.head)); P.rows.forEach(r => o.push(row(r))); o.push("[[/TB]]", "[[TS]] " + SRC_ILLUS_PANEL);
       return o.join("\n");
     }
-    o.push("[[CTR]] RESEARCH QUESTIONNAIRE", "[[CTRN]] Department of Accounting, University of Uyo", "", "Dear Respondent,",
-      "This questionnaire has been designed to collect data for an academic research study titled “" + bp.title + ".” The information you provide will be used strictly for academic purposes and will be treated with the utmost confidentiality. Kindly complete it as candidly as possible by ticking (✓) the option that best represents your view.",
-      "Thank you for your cooperation.", "Yours faithfully,", "The Researcher", "");
-    o.push("[[H2]] SECTION A: DEMOGRAPHIC INFORMATION", "Please tick (✓) as appropriate.",
-      "[[LI]] 1. Gender: Male [   ]   Female [   ]", "[[LI]] 2. Age range: 20 to 29 years [   ]   30 to 39 years [   ]   40 to 49 years [   ]   50 years and above [   ]", "[[LI]] 3. Educational qualification: OND / NCE [   ]   HND / B.Sc. [   ]   M.Sc. / MBA and above [   ]",
-      "[[LI]] 4. " + bp.controlName + ": " + bp.strata.map(s => s + " [   ]").join("   "), "[[LI]] 5. Years of service: Below 5 years [   ]   5 to 10 years [   ]   Above 10 years [   ]", "");
-    o.push("[[H2]] SECTION B: " + bp.field.toUpperCase().slice(0, 0) + "STATEMENTS ON THE STUDY VARIABLES", "Please indicate your level of agreement with each statement by ticking (✓) one box. Key: SA = Strongly Agree (4), A = Agree (3), D = Disagree (2), SD = Strongly Disagree (1).", "");
-    const part = (lbl, name, st) => { o.push("**Part " + lbl + ": " + name + "**", "[[TB grid w=8,56,9,9,9,9]]", row(["S/N", "Statement", "SA", "A", "D", "SD"])); st.forEach((s, i) => o.push(row([i + 1, s, "", "", "", ""]))); o.push("[[/TB]]", ""); };
-    bp.ivs.forEach((v, j) => part(String.fromCharCode(65 + j), v.name, v.statements)); part(String.fromCharCode(65 + bp.ivs.length), bp.dv.name, bp.dv.statements);
-    o.push("[[CTRN]] Thank you for your time.");
+    const T = String(bp.title || "").toUpperCase().replace(/\s*\(.*$/, "").trim(), at = bp.place ? "" : "", org = bp.org + (bp.place ? ", " + bp.place : "");
+    o.push("[[CTR]] RESEARCH QUESTIONNAIRE", "[[PL]] Department of Accounting,", "[[PL]] Faculty of Management Sciences,", "[[PL]] University of Uyo,", "[[PL]] Uyo, Akwa Ibom State.", "[[SP]]", "[[PL]] Dear Respondent,", "[[SP]]",
+      "[[CTR]] RESEARCH QUESTIONNAIRE ON " + T,
+      "I am an undergraduate student of the Department of Accounting, University of Uyo, carrying out a research study on the above topic, using " + org + " as a case study. This questionnaire is designed strictly for academic purposes, and the information you provide will be treated with the utmost confidentiality. Kindly complete it as candidly as possible by ticking (√) the option that best represents your view.",
+      "[[PL]] Thank you for your cooperation.", "[[SP]]", "[[PL]] Yours faithfully,", "[[PL]] [Your Name].", "[[SP]]");
+    o.push("[[CTR]] SECTION A: DEMOGRAPHIC INFORMATION", "[[PL]] Please tick (√) as appropriate.",
+      "[[PL]] 1. Gender:", "[[PL]] Male [   ]     Female [   ]", "[[PL]] 2. Age:", "[[PL]] 20 to 29 years [   ]     30 to 39 years [   ]     40 to 49 years [   ]     50 years and above [   ]", "[[PL]] 3. Educational Qualification:", "[[PL]] OND/NCE [   ]     HND/B.Sc. [   ]     M.Sc./MBA and above [   ]",
+      "[[PL]] 4. " + bp.controlName + ":", "[[PL]] " + bp.strata.map(s => s + " [   ]").join("     "), "[[PL]] 5. Years of Service:", "[[PL]] Below 5 years [   ]     5 to 10 years [   ]     Above 10 years [   ]", "[[SP]]");
+    o.push("[[CTR]] SECTION B: " + String(bp.construct || "").toUpperCase() + " AND " + String(bp.dv.name || "").toUpperCase(), "[[PL]] Please indicate your level of agreement with each of the following statements using the scale below: Strongly Agree (SA), Agree (A), Disagree (D), Strongly Disagree (SD).", "[[SP]]");
+    bp.ivs.forEach((v, j) => { o.push("[[PL]] **Part " + ROMAN[j].toUpperCase() + ": " + v.name + " (" + v.abbr + ")**"); v.statements.forEach((t, i) => o.push("[[PL]] " + (i + 1) + ". " + t, "[[PL]] SA [   ]     A [   ]     D [   ]     SD [   ]")); o.push("[[SP]]"); });
+    o.push("[[CTRN]] Thank you for your time and cooperation.");
     return o.join("\n");
   }
 

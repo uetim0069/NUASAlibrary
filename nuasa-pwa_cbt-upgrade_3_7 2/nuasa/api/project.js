@@ -1,5 +1,5 @@
 /* Project AI Studio backend (Vercel serverless function, free plan).
-   Uses Groq's free API (Llama and other open models). Keeps the key secret, checks sign-in, limits use per student and per day, streams text back. */
+   Uses Groq's free API (Llama and other open models) first, and Google's free Gemini API as a backup when Groq fails or is busy. Keeps the key secret, checks sign-in, limits use per student and per day, streams text back. */
 const SB_URL = process.env.SUPABASE_URL || "https://wcikankedtelqbojzjdm.supabase.co";
 const SB_ANON = process.env.SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndjaWthbmtlZHRlbHFib2p6amRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE4NzQ4ODAsImV4cCI6MjEwNzQ1MDg4MH0.lo1ZscA3uVBsggtxHW9U2YPPDhQAWYa3pATioq83wQ4";
 const SB_SERVICE = process.env.SUPABASE_SERVICE_KEY;
@@ -10,6 +10,9 @@ const GLOBAL_LIMIT = parseInt(process.env.PROJECT_GLOBAL_LIMIT || "160", 10); //
 
 // ---- Groq (free, OpenAI-compatible). Tries each model in GROQ_MODELS until one answers. ----
 const GROQ_KEY = process.env.GROQ_API_KEY;
+// ---- Gemini (free) is the backup: only used when every Groq model has failed. Leave GEMINI_API_KEY unset to turn the backup off. ----
+const GEMINI_KEY = process.env.GEMINI_API_KEY;
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 const GROQ_PINNED = (process.env.GROQ_MODELS || "").split(",").map(x => x.trim()).filter(Boolean); // optional manual override, e.g. llama-3.3-70b-versatile,llama-3.1-8b-instant
 // fetch that gives up after ms (the timer is cleared as soon as headers arrive, so streaming bodies are not cut off)
 async function fetchT(url, opts, ms) {
@@ -41,7 +44,7 @@ async function groqModels() {
 // One call to Groq. gen uses the same fields as before (temperature, maxOutputTokens). Falls through the model list on any error.
 async function callAI({ system, user, gen, stream, json }) {
   let last = null;
-  for (const m of await groqModels()) {
+  for (const m of (GROQ_KEY ? await groqModels() : [])) {
     try {
       const body = { model: m, temperature: gen.temperature, max_tokens: gen.maxOutputTokens, stream: !!stream, messages: [{ role: "system", content: system }, { role: "user", content: user }] };
       if (json) body.response_format = { type: "json_object" };
@@ -56,11 +59,30 @@ async function callAI({ system, user, gen, stream, json }) {
       // any other error (model not found, request too large, busy): try the next model
     } catch (e) { console.error("groq fetch error/timeout", m, e && e.message); }
   }
+  // Backup: Gemini, only if its key is set. Its answer is read with aiText / aiDelta below (p = "gemini").
+  if (GEMINI_KEY) {
+    try {
+      const g = { maxOutputTokens: gen.maxOutputTokens, temperature: gen.temperature };
+      if (json) g.responseMimeType = "application/json";
+      if (/2\.5-flash/.test(GEMINI_MODEL)) g.thinkingConfig = { thinkingBudget: 0 }; // spend the quota on writing, not hidden reasoning
+      const url = "https://generativelanguage.googleapis.com/v1beta/models/" + GEMINI_MODEL + (stream ? ":streamGenerateContent?alt=sse" : ":generateContent");
+      const r = await fetchT(url, { method: "POST", headers: { "x-goog-api-key": GEMINI_KEY, "content-type": "application/json" },
+        body: JSON.stringify({ systemInstruction: { parts: [{ text: system }] }, contents: [{ role: "user", parts: [{ text: user }] }], generationConfig: g }) }, 20000);
+      if (r.ok) { console.error("answered by gemini backup"); return { r, p: "gemini" }; }
+      console.error("gemini backup status", r.status, (await r.clone().text().catch(() => "")).slice(0, 300));
+      if (!last || last.status === 429 || last.status >= 500) last = r; // show the more useful error to the student
+    } catch (e) { console.error("gemini fetch error/timeout", e && e.message); }
+  }
   if (last) return { r: last, p: "groq" };
   throw new Error("unreachable");
 }
-// Read the text out of a finished (non-streamed) answer.
-const aiText = d => (d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content) || "";
+// Read the text out of a finished (non-streamed) answer, and out of one streamed event, for either provider.
+const aiText = (d, p) => p === "gemini"
+  ? ((d.candidates && d.candidates[0] && d.candidates[0].content && d.candidates[0].content.parts) || []).map(x => x.text || "").join("")
+  : (d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content) || "";
+const aiDelta = (ev, p) => p === "gemini"
+  ? ((ev.candidates && ev.candidates[0] && ev.candidates[0].content && ev.candidates[0].content.parts) || []).map(x => x.text || "").join("")
+  : (ev.choices && ev.choices[0] && ev.choices[0].delta && ev.choices[0].delta.content) || "";
 
 const LEVELS = ["High School", "Undergraduate / Bachelor's", "Master's"];
 const CITES = ["APA 7th edition", "Harvard", "MLA", "Chicago", "IEEE"];
@@ -71,6 +93,9 @@ const total = r => parseInt((r.headers.get("content-range") || "0/0").split("/")
 const TOPIC_LIMIT = parseInt(process.env.PROJECT_TOPIC_LIMIT || "12", 10); // topic searches per student per 24h
 const TOPIC_SYSTEM = `You are an experienced final-year project supervisor at a Nigerian university. You suggest project topics that a student can realistically finish in one or two semesters.
 Rules: every topic must be specific (a named variable relationship, population, place or period), researchable with data the student can actually get, and written as a proper academic title. Vary the angle across topics. Use the Nigerian setting where relevant (FIRS, CBN, FRC, ICAN, NGX, SMEDAN, IFRS adoption). Never claim statistics, findings or named reports you are not sure exist. Do not repeat the same idea in different words.`;
+const TOPIC_SCHEMA = { type: "ARRAY", items: { type: "OBJECT", properties: {
+  title: { type: "STRING" }, angle: { type: "STRING" }, method: { type: "STRING" }, data: { type: "STRING" }, difficulty: { type: "STRING", enum: ["Easy", "Moderate", "Challenging"] } },
+  required: ["title", "angle", "method", "data", "difficulty"] } };
 
 async function topicsMode(res, user, body) {
   const f = body.form || {};
@@ -106,7 +131,7 @@ async function topicsMode(res, user, body) {
   let topics;
   try {
     const d = await up.json();
-    const txt = aiText(d);
+    const txt = aiText(d, prov);
     let arr = JSON.parse(txt.replace(/^```json|```$/g, "").trim());
     if (!Array.isArray(arr)) arr = arr.topics || [];
     topics = arr.filter(t => t && t.title).slice(0, 8).map(t => ({
@@ -171,6 +196,13 @@ INTEGRITY RULES
 
 /* ---------- blueprint (the plan every section is written from) ---------- */
 const BP_SYSTEM = `You are a final year project supervisor in the Department of Accounting, University of Uyo. You turn a student's topic into a precise study plan that follows the department's project pattern: one dependent variable, three or four independent variables, and the same number of objectives, research questions and null hypotheses. Use British spelling. Never use em dashes, en dashes or hyphens as dashes. Hyphens only inside genuine compound words.`;
+const strArr = { type: "ARRAY", items: { type: "STRING" } };
+const BP_SCHEMA = { type: "OBJECT", properties: {
+  design: { type: "STRING", enum: ["survey", "expost"] }, title: { type: "STRING" }, construct: { type: "STRING" }, org: { type: "STRING" }, orgShort: { type: "STRING" }, place: { type: "STRING" }, sector: { type: "STRING" }, controlName: { type: "STRING" },
+  dv: { type: "OBJECT", properties: { name: { type: "STRING" }, abbr: { type: "STRING" }, phrase: { type: "STRING" }, definition: { type: "STRING" }, statements: strArr }, required: ["name", "abbr", "phrase", "definition", "statements"] },
+  ivs: { type: "ARRAY", items: { type: "OBJECT", properties: { name: { type: "STRING" }, abbr: { type: "STRING" }, phrase: { type: "STRING" }, definition: { type: "STRING" }, verb: { type: "STRING", enum: ["determine", "assess", "examine", "ascertain", "evaluate", "investigate"] }, expected: { type: "STRING", enum: ["+", "-"] }, statements: strArr }, required: ["name", "abbr", "phrase", "definition", "verb", "expected", "statements"] } },
+  strata: strArr, theories: { type: "ARRAY", items: { type: "OBJECT", properties: { name: { type: "STRING" }, by: { type: "STRING" } }, required: ["name", "by"] } },
+}, required: ["design", "title", "construct", "org", "orgShort", "place", "sector", "controlName", "dv", "ivs", "strata", "theories"] };
 
 async function checkLimits(res, user) {
   const since = encodeURIComponent(new Date(Date.now() - 864e5).toISOString()), H = { ...SRV(SB_SERVICE), Prefer: "count=exact", Range: "0-0" };
@@ -228,7 +260,7 @@ Return ONLY a JSON object of exactly this shape (no markdown, no extra keys). dv
   if (!up.ok) { console.error("ai blueprint", up.status, await up.text().catch(() => "")); return fail(res, up.status === 429 ? 429 : 502, up.status === 429 ? "The free AI quota is busy right now. Wait a minute and try again." : "The assistant is unavailable right now (code " + up.status + ")."); }
   let bp;
   try {
-    const d = await up.json(), txt = aiText(d);
+    const d = await up.json(), txt = aiText(d, prov);
     bp = STUDY.sanitizeBp(JSON.parse(txt.replace(/^```json|```$/g, "").trim()));
     if (!bp) throw new Error("incomplete");
     if (method !== "auto") bp.design = method;
@@ -245,49 +277,6 @@ function expander(map) {
   return {
     push(t) { buf += t; const i = buf.lastIndexOf("{{"); let cut = buf.length; if (i >= 0 && buf.indexOf("}}", i) < 0) cut = i; else if (buf.endsWith("{")) cut = buf.length - 1; const out = sub(buf.slice(0, cut)); buf = buf.slice(cut); return out; },
     end() { const out = sub(buf).replace(/\{\{[^}]*$/, ""); buf = ""; return out; },
-  };
-}
-
-/* ---------- placeholder guard ----------
-   Small free models sometimes forget the {{OBJ}}, {{RQ}} and {{HYP}} lines, write the lists themselves (incomplete), or mangle the braces.
-   This runs on every line before the expander: it fixes odd placeholder spellings and, in Chapter One, makes sure the exact objectives,
-   research questions and hypotheses from the study plan are always put under headings 1.3, 1.4 and 1.5. */
-function guard(map, sec) {
-  const has = k => Object.prototype.hasOwnProperty.call(map, k);
-  const keyRe = /^\W*(?:\{\{|\[\[|\{|<)\s*([A-Z][A-Z0-9_]*)\s*(?:\}\}|\]\]|\}|>)\W*$/;
-  const HEAD = sec === "c1" ? [
-    ["OBJ", /^(?:\[\[H[23]\]\]|#+)?\s*\**\s*1\.3\.?\s+\S/, "1.3 Objectives of the Study"],
-    ["RQ", /^(?:\[\[H[23]\]\]|#+)?\s*\**\s*1\.4\.?\s+\S/, "1.4 Research Questions"],
-    ["HYP", /^(?:\[\[H[23]\]\]|#+)?\s*\**\s*1\.5\.?\s+\S/, "1.5 Hypotheses of Study"]] : [];
-  const isHead = t => /^(?:\[\[(?:H2|H3|H4|CH|CT)\]\]|#{1,4}\s)/.test(t) || /^\**\d\.\d{1,2}\.?\s+[A-Z]/.test(t);
-  const isItem = t => /^\[\[(?:LI|BL)\]\]/.test(t) || /^(?:[-*\u2022]\s+)?\**\(?(?:i{1,3}|iv|v|vi{0,3}|ix|x|[a-f]|\d{1,2})[.)]\s/.test(t) || /^\**H0\d?/.test(t);
-  let buf = "", pend = null, skip = false;
-  const placed = new Set(), out = [];
-  const put = k => { out.push("{{" + k + "}}"); placed.add(k); if (pend === k) pend = null; };
-  function step(raw) {
-    const l = raw.replace(/\s+$/, ""), t = l.trim();
-    if (!t) { out.push(l); return; }
-    const km = keyRe.exec(t);
-    if (km && has(km[1])) { skip = false; if (HEAD.length && placed.has(km[1]) && /^(?:OBJ|RQ|HYP)$/.test(km[1])) return; put(km[1]); return; }
-    let im; const ir = /\{\{\s*([A-Z0-9_]+)\s*\}\}/g;
-    while ((im = ir.exec(t))) { placed.add(im[1]); if (pend === im[1]) pend = null; } // placeholder written inside a sentence: the expander still fills it
-    if (skip) { if (isItem(t)) return; skip = false; } // the model wrote its own list after the placeholder: drop it, the system list is the exact one
-    if (pend) {
-      if (isItem(t)) { put(pend); skip = true; return; } // the model wrote its own list instead of the placeholder: swap it for the exact list
-      if (isHead(t)) put(pend); // heading reached with no placeholder written: insert it now
-    }
-    out.push(l);
-    for (const [k, re, ] of HEAD) if (re.test(t) && !placed.has(k)) pend = k;
-  }
-  const take = () => { const r = out.map(x => x + "\n").join(""); out.length = 0; return r; };
-  return {
-    push(t) { buf += t; let i; while ((i = buf.indexOf("\n")) >= 0) { step(buf.slice(0, i)); buf = buf.slice(i + 1); } return take(); },
-    end() {
-      if (buf.trim()) step(buf); buf = "";
-      if (pend) put(pend);
-      for (const [k, , title] of HEAD) if (!placed.has(k)) { out.push("[[H2]] " + title); put(k); } // heading never written at all: still give the student the list
-      return take().replace(/\n$/, "");
-    },
   };
 }
 
@@ -321,7 +310,7 @@ const SEC = {
 
   c1: { words: 3050, t: (bp, S) => {
     const post = bp.design === "expost", rel = post ? "effect of" : "relationship between", m = bp.ivs.length;
-    return `Write CHAPTER ONE: INTRODUCTION: about 3,000 words in about 33 paragraphs, using exactly this skeleton. Do not add or drop sections. The three lines {{OBJ}}, {{RQ}} and {{HYP}} are mandatory: copy each one on its own line exactly as shown, and never write the objectives, research questions or hypotheses yourself, because the system fills in the complete lists.
+    return `Write CHAPTER ONE: INTRODUCTION: about 3,000 words in about 33 paragraphs, using exactly this skeleton. Do not add or drop sections.
 
 [[CH]] CHAPTER ONE
 [[CT]] INTRODUCTION
@@ -549,7 +538,7 @@ const SEC_ORDER = Object.keys(SEC);
 
 module.exports = async (req, res) => {
   if (req.method !== "POST") return fail(res, 405, "Method not allowed.");
-  if (!GROQ_KEY || !SB_SERVICE) return fail(res, 500, "The Project AI Studio is not set up yet. Please tell the NUASA admin.");
+  if ((!GROQ_KEY && !GEMINI_KEY) || !SB_SERVICE) return fail(res, 500, "The Project AI Studio is not set up yet. Please tell the NUASA admin.");
 
   // 1. Must be a signed-in user
   const token = (req.headers.authorization || "").replace(/^Bearer\s+/i, "");
@@ -581,7 +570,7 @@ module.exports = async (req, res) => {
   // 3. Limits: per student and for the whole site (keeps usage inside the free quota)
   if (!(await checkLimits(res, user))) return;
 
-  // 4. Build the prompt and stream the answer from Groq
+  // 4. Build the prompt and stream the answer from Groq (or the Gemini backup)
   const msg = `${brief(bp, S, { level, field: bp.field })}\nCitation style: ${cite}\n\nTASK\n${sec.t(bp, S, { cite, level }, cites)}\n\nPROJECT TEXT WRITTEN SO FAR (for consistency only; do not repeat it):\n${prior || "(nothing yet)"}`;
   const gen = { maxOutputTokens: Math.min(14000, Math.ceil(sec.words * 1.8) + 900), temperature: 0.75 };
   let up, prov;
@@ -591,14 +580,14 @@ module.exports = async (req, res) => {
   } catch (e) { return fail(res, 502, "The assistant could not be reached. Try again."); }
   if (!up.ok) {
     console.error("ai", prov, up.status, await up.text().catch(() => ""));
-    return fail(res, up.status === 429 ? 429 : 502, up.status === 429 ? "The free AI quota is busy right now. Wait a minute and tap Continue." : "The assistant is unavailable right now (code " + up.status + "). Check the Groq API key, then try again.");
+    return fail(res, up.status === 429 ? 429 : 502, up.status === 429 ? "The free AI quota is busy right now. Wait a minute and tap Continue." : "The assistant is unavailable right now (code " + up.status + "). Check the AI API keys, then try again.");
   }
 
   // Count this call only now that the AI accepted it, so failed attempts do not use up a student's daily drafts.
   await logUse(user, body.section);
 
   res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-cache, no-transform", "X-Accel-Buffering": "no" });
-  const dec = new TextDecoder(), ex = expander(S.ph), gd = guard(S.ph, body.section);
+  const dec = new TextDecoder(), ex = expander(S.ph);
   let buf = "";
   try {
     for await (const chunk of up.body) {
@@ -610,12 +599,12 @@ module.exports = async (req, res) => {
         if (line.slice(5).trim() === "[DONE]") continue;
         let ev; try { ev = JSON.parse(line.slice(5)); } catch (e) { continue; }
         if (ev.error) throw new Error("upstream");
-        const t = ev.choices && ev.choices[0] && ev.choices[0].delta && ev.choices[0].delta.content;
-        if (t) { const o = ex.push(gd.push(t)); if (o) res.write(o); }
+        const t = aiDelta(ev, prov);
+        if (t) { const o = ex.push(t); if (o) res.write(o); }
       }
     }
-    const tail = ex.push(gd.end()) + ex.end(); if (tail) res.write(tail);
+    const tail = ex.end(); if (tail) res.write(tail);
     res.end();
   } catch (e) { res.write("\n[[ERROR]]"); res.end(); }
 };
-module.exports.expander = expander; module.exports.guard = guard; module.exports.SEC_ORDER = SEC_ORDER; module.exports._test = { SEC, SYSTEM, brief };
+module.exports.expander = expander; module.exports.SEC_ORDER = SEC_ORDER; module.exports._test = { SEC, SYSTEM, brief };
