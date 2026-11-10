@@ -248,6 +248,49 @@ function expander(map) {
   };
 }
 
+/* ---------- placeholder guard ----------
+   Small free models sometimes forget the {{OBJ}}, {{RQ}} and {{HYP}} lines, write the lists themselves (incomplete), or mangle the braces.
+   This runs on every line before the expander: it fixes odd placeholder spellings and, in Chapter One, makes sure the exact objectives,
+   research questions and hypotheses from the study plan are always put under headings 1.3, 1.4 and 1.5. */
+function guard(map, sec) {
+  const has = k => Object.prototype.hasOwnProperty.call(map, k);
+  const keyRe = /^\W*(?:\{\{|\[\[|\{|<)\s*([A-Z][A-Z0-9_]*)\s*(?:\}\}|\]\]|\}|>)\W*$/;
+  const HEAD = sec === "c1" ? [
+    ["OBJ", /^(?:\[\[H[23]\]\]|#+)?\s*\**\s*1\.3\.?\s+\S/, "1.3 Objectives of the Study"],
+    ["RQ", /^(?:\[\[H[23]\]\]|#+)?\s*\**\s*1\.4\.?\s+\S/, "1.4 Research Questions"],
+    ["HYP", /^(?:\[\[H[23]\]\]|#+)?\s*\**\s*1\.5\.?\s+\S/, "1.5 Hypotheses of Study"]] : [];
+  const isHead = t => /^(?:\[\[(?:H2|H3|H4|CH|CT)\]\]|#{1,4}\s)/.test(t) || /^\**\d\.\d{1,2}\.?\s+[A-Z]/.test(t);
+  const isItem = t => /^\[\[(?:LI|BL)\]\]/.test(t) || /^(?:[-*\u2022]\s+)?\**\(?(?:i{1,3}|iv|v|vi{0,3}|ix|x|[a-f]|\d{1,2})[.)]\s/.test(t) || /^\**H0\d?/.test(t);
+  let buf = "", pend = null, skip = false;
+  const placed = new Set(), out = [];
+  const put = k => { out.push("{{" + k + "}}"); placed.add(k); if (pend === k) pend = null; };
+  function step(raw) {
+    const l = raw.replace(/\s+$/, ""), t = l.trim();
+    if (!t) { out.push(l); return; }
+    const km = keyRe.exec(t);
+    if (km && has(km[1])) { skip = false; if (HEAD.length && placed.has(km[1]) && /^(?:OBJ|RQ|HYP)$/.test(km[1])) return; put(km[1]); return; }
+    let im; const ir = /\{\{\s*([A-Z0-9_]+)\s*\}\}/g;
+    while ((im = ir.exec(t))) { placed.add(im[1]); if (pend === im[1]) pend = null; } // placeholder written inside a sentence: the expander still fills it
+    if (skip) { if (isItem(t)) return; skip = false; } // the model wrote its own list after the placeholder: drop it, the system list is the exact one
+    if (pend) {
+      if (isItem(t)) { put(pend); skip = true; return; } // the model wrote its own list instead of the placeholder: swap it for the exact list
+      if (isHead(t)) put(pend); // heading reached with no placeholder written: insert it now
+    }
+    out.push(l);
+    for (const [k, re, ] of HEAD) if (re.test(t) && !placed.has(k)) pend = k;
+  }
+  const take = () => { const r = out.map(x => x + "\n").join(""); out.length = 0; return r; };
+  return {
+    push(t) { buf += t; let i; while ((i = buf.indexOf("\n")) >= 0) { step(buf.slice(0, i)); buf = buf.slice(i + 1); } return take(); },
+    end() {
+      if (buf.trim()) step(buf); buf = "";
+      if (pend) put(pend);
+      for (const [k, , title] of HEAD) if (!placed.has(k)) { out.push("[[H2]] " + title); put(k); } // heading never written at all: still give the student the list
+      return take().replace(/\n$/, "");
+    },
+  };
+}
+
 /* ---------- section briefs ---------- */
 const plainLine = l => l.replace(/^\[\[LI\]\]\s*/, "").replace(/\*\*/g, "");
 function brief(bp, S, f) {
@@ -278,7 +321,7 @@ const SEC = {
 
   c1: { words: 3050, t: (bp, S) => {
     const post = bp.design === "expost", rel = post ? "effect of" : "relationship between", m = bp.ivs.length;
-    return `Write CHAPTER ONE: INTRODUCTION: about 3,000 words in about 33 paragraphs, using exactly this skeleton. Do not add or drop sections.
+    return `Write CHAPTER ONE: INTRODUCTION: about 3,000 words in about 33 paragraphs, using exactly this skeleton. Do not add or drop sections. The three lines {{OBJ}}, {{RQ}} and {{HYP}} are mandatory: copy each one on its own line exactly as shown, and never write the objectives, research questions or hypotheses yourself, because the system fills in the complete lists.
 
 [[CH]] CHAPTER ONE
 [[CT]] INTRODUCTION
@@ -555,7 +598,7 @@ module.exports = async (req, res) => {
   await logUse(user, body.section);
 
   res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-cache, no-transform", "X-Accel-Buffering": "no" });
-  const dec = new TextDecoder(), ex = expander(S.ph);
+  const dec = new TextDecoder(), ex = expander(S.ph), gd = guard(S.ph, body.section);
   let buf = "";
   try {
     for await (const chunk of up.body) {
@@ -568,11 +611,11 @@ module.exports = async (req, res) => {
         let ev; try { ev = JSON.parse(line.slice(5)); } catch (e) { continue; }
         if (ev.error) throw new Error("upstream");
         const t = ev.choices && ev.choices[0] && ev.choices[0].delta && ev.choices[0].delta.content;
-        if (t) { const o = ex.push(t); if (o) res.write(o); }
+        if (t) { const o = ex.push(gd.push(t)); if (o) res.write(o); }
       }
     }
-    const tail = ex.end(); if (tail) res.write(tail);
+    const tail = ex.push(gd.end()) + ex.end(); if (tail) res.write(tail);
     res.end();
   } catch (e) { res.write("\n[[ERROR]]"); res.end(); }
 };
-module.exports.expander = expander; module.exports.SEC_ORDER = SEC_ORDER; module.exports._test = { SEC, SYSTEM, brief };
+module.exports.expander = expander; module.exports.guard = guard; module.exports.SEC_ORDER = SEC_ORDER; module.exports._test = { SEC, SYSTEM, brief };
