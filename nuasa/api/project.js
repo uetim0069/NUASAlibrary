@@ -466,6 +466,11 @@ IN-TEXT CITATIONS FOUND IN THE PROJECT: ${cites && cites.length ? cites.join("; 
 const SEC_ORDER = Object.keys(SEC);
 
 module.exports = async (req, res) => {
+  res.setHeader("Access-Control-Allow-Origin", "https://localhost");
+  res.setHeader("Access-Control-Allow-Headers", "content-type, authorization");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Vary", "Origin");
+  if (req.method === "OPTIONS") { res.statusCode = 204; return res.end(); }
   if (req.method !== "POST") return fail(res, 405, "Method not allowed.");
   if (!AI_KEY || !SB_SERVICE) return fail(res, 500, "The Project AI Studio is not set up yet. Please tell the NUASA admin.");
 
